@@ -1,0 +1,4 @@
+% !TEX root = ./multilinear.tex
+\section{Conclusions}
+\label{sec:conc}
+State of the art parallel algorithms for various subgraph detection problems are based on the color coding technique, which yields algorithms with running time and space complexity proportional exponential on a solution size $k$. Here, we have presented algorithms based on a more recent technique from the parameterized complexity literature, multilinear detection. This methodology gives us improved bounds on memory and time over color coding. We propose an MPI algorithm for multilinear detection for general polynomials, and we show applications to two important problems, $k$-path and anomaly detection via scan statistics. We also show that finding a partitioning with minimum cost for the problem discussed here is NP-Hard, and we leave the development of partitioning heuristics as a topic of future work.

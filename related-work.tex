@@ -1,0 +1,50 @@
+% !TEX root = ./multilinear.tex
+\section{Related Work}
+\label{sec:related}
+
+There is a huge literature on a variety of subgraph analysis problems, arising
+out of a number of applications, such as bioinformatics, security,
+social network analysis, epidemiology and finance (see  \cite{akoglu2014graph} for a survey).
+We discuss some of three main directions here: 
+subgraph isomorphism and clique
+enumeration (for which parallel algorithms exist), and anomaly detection (for which
+there has been limited work on parallel algorithms).
+
+Given a graph $G=(V, E)$ with $n=|V|$, $m=|E|$, and a subgraph $H=(V_H, E_H)$, with $k=|V_H|$,
+the basic subgraph isomorphism problem involves finding a mapping $f:V_H\rightarrow V$
+such that $(i, j)\in E_H$ if and only if $(f(i), f(j))\in E$. This is
+a very computationally challenging problem. The frequent subgraph detection
+problem involves finding subgraph isomorphisms (also referred to as embeddings) 
+having frequency higher than a threshold; other variations involve finding
+non-overlapping embeddings.
+Parallel approaches for this problem involve a ``bottom-up'' candidate generation approach,
+combined with careful pruning, which builds embeddings of larger subgraphs using all possible
+embeddings of smaller subgraphs\cite{hamid2016scalemine, elsidy:vldb14}. While these results
+allow scaling to very large networks with millions of nodes, they give no guarantees on
+the performance. Our work is more closely related to the use of the color coding technique
+for finding tree-like subgraphs \cite{alon2008biomolecular, huffner2008algorithm}, which
+guarantees a fully polynomial time approximation to the number of embeddings with
+running time and space of $O(2^ke^km\log{n})$ and $O(2^km)$, respectively.
+This has been parallelized using MapReduce \cite{zhao2012sahad} and 
+OpenMP \cite{slota:icpp13, slota:ipdps14}, enabling subgraph counting in graphs with
+tens of millions of nodes with rigorous guarantees. Slota et al. \cite{slota:icpp13, slota:ipdps14}
+use threading and techniques for reducing the memory footprint of the color coding
+dynamic programming tables, in order to scale. Our approach uses algebraic methods
+for which the memory scales as $O(k)$ instead of $O(2^k)$, and the worst case
+running time scales as $O(2^k)$ instead of $O(2^ke^k)$, which gives the improved performance.
+
+Another area where parallel algorithms have been developed is for dense subgraph enumeration.
+This is a very challenging problem, since finding the largest clique is NP-hard to
+approximate even within an $O(n^{1-\epsilon})$ factor for any $\epsilon>0$.
+There are several implementations for finding maximal cliques in parallel by
+careful partitioning, pruning and backtracking heuristics
+\cite{schmidt2009scalable, zhao2016parallel, aparicio:ispa14, cheng:kdd12, du:mcd09}.
+Our results do not extend to the clique enumeration problem.
+
+Finally, anomaly detection is a broad topic, and there has been some work
+on parallel algorithms, e.g., \cite{shanbhag:icccn08}. Our work is most related to
+the approach known as graph scan statistics, which involves finding connected subgraphs
+that optimize specific functions that model underlying processes about the data.
+While there exist a number of heuristics, the work of \cite{cadena:sdm17} gives the
+first rigorous methods for optimizing most scan statistics using the color coding technique.
+However, all these methods are sequential.

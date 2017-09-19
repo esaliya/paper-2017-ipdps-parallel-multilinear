@@ -1,0 +1,219 @@
+% !TEX root = ./multilinear.tex
+\section{Preliminaries}
+\label{sec:prelim}
+
+\subsection{The Multilinear Detection Problem}
+Let $X = x_1, \ldots,x_n$ be a set of variables, and let $P(X)$ be a polynomial, which is a sum 
+of monomials on $X$. We will denote $P(X)=\sum_S \Pi_{i\in S} x_i$ as a monomial, where
+the sum is over multisets $S$.  An example of a polynomial on six variables is 
+$P(x_1,x_2,x_3,x_4, x_5, x_6) = x_1^2x_2 + x_2x_3x_4 + x_3x_4x_5 + x_5x_6$. 
+A monomial is called \emph{multilinear} or \emph{square-free} if all its variables 
+have exponent 1, and its \emph{degree} is the sum of the exponents of all its variables. 
+For instance, in the example above, $x_2x_3x_4$, $x_3x_4x_5$, and $x_5x_6$ are multilinear monomials, but $x_1^2x_2$ is not multilinear. 
+Given variables $X = x_1, \ldots ,x_n$ and a polynomial $P(X)$, the goal in 
+the $k$-Multilinear Detection (\textsc{$k$-MLD}) problem
+is to decide whether or not $P(X)$ has a multilinear monomial of degree exactly $k$. 
+
+
+We note that the polynomial $P(X)$ may have an arbitrary number of terms---i.e., exponential on the size of $n$---therefore, the problem is not as simple as writing the polynomial explicitely and checking each term. Rather, we assume that $P(X)$ is given succintly in a recursive form, and the ``yes"/``no" decision has to be made without unrolling this recursion.
+Figure \ref{fig:dag} illustrates a circuit representation of the polynomial $P(\cdot)$ above.
+In general, we also have a weight $w_S$ for each multinomial $\Pi_{i\in S} x_i$ corresponding
+to each term in the polynomial $P(\cdot)$. Our focus in this paper will be the following problem.
+
+\begin{figure}[h]
+\includegraphics[width=0.5\textwidth]{img/dag3_fixed.pdf}
+\caption{
+\small
+The polynomial $P(x_1,x_2,x_3,x_4, x_5, x_6) = x_1^2x_2 + x_2x_3x_4 + x_3x_4x_5 + x_5x_6$
+represented as a circuit with multiplication ($\cdot$) and addition ($+$) gates, which is a DAG. 
+Each variable $x_i$ is assigned the element $v_0+v_i\in\mathbb{Z}_2[\mathbb{Z}_2^2]$,
+for randomly chosen $v_i\in \mathbb{Z}_2^2$. The computations at each gate
+are in the group algebra, and are shown in blue. The circuit evaluates to the element $J$.
+\vspace{-0.2in}
+}
+\label{fig:dag}
+\end{figure}
+
+\begin{problem} (\textsc{$k$-MLD} problem)
+Given a polynomial $P(\cdot)$ represented by a DAG $G=(V, E)$, in which each monomial
+has degree at most $k$, with a weight $w_S$ for
+each monomial corresponding to the multiset $S$ in $P(\cdot)$, determine:
+(1) if $P(\cdot)$ has a multilinear term, and 
+(2) the maximum weight of any multilinear term, if one exists.
+\end{problem}
+
+
+\subsection{Group Algebras}
+\label{sec:grpalgebra}
+We discuss some notation from group algebras that is crucial for the paper. 
+Let $\mathbb{Z}_2^k$ be the group formed by all the $k$-dimensional binary vectors, and define the group multiplication operation as entry-wise XOR. For example, $\mathbb{Z}_2^2$ consists of the vectors $v_0 = (0, 0), v_1 = (0, 1), v_2 = (1, 0), v_3 = (1, 1)$. We note that $v_0$ is the multiplicative identity of the group, and each element is its own multiplicative inverse: $v_i \cdot v_i = v_0$. Now, we define a group algebra $\mathbb{Z}_2[\mathbb{Z}_2^k]$. Each element in the group algebra is a sum of elements from $\mathbb{Z}_2^k$ with coefficients from $\mathbb{Z}_2$ (i.e., either 1 or 0):
+$
+\sum_{v\in \mathbb{Z}_2^k} a_v v,
+$
+where $a_v \in \{0,1\}$. The addition operator of the group algebra is
+{\scriptsize
+$$
+\sum_{v\in \mathbb{Z}_2^k} a_v v + \sum_{v\in \mathbb{Z}_2^k} b_v v = \sum_{v\in \mathbb{Z}_2^k} (a_v + b_v) v,
+$$}
+where the addition of the coefficients is modulo 2, and the multiplication is defined as
+{\scriptsize
+$$
+\left(\sum_{v\in \mathbb{Z}_2^k} a_v v\right)\left(\sum_{u\in \mathbb{Z}_2^k} b_u u\right) = \sum_{v\in \mathbb{Z}_2^k} (a_v \cdot b_u) (v\cdot u).
+$$}
+
+
+\begin{mdframed}
+\scriptsize{
+\noindent
+\textbf{Example.} For $k=2$, the group algebra $\mathbb{Z}_2[\mathbb{Z}_2^k]$ has
+$2^{2^2}=16$ elements, such as
+\[
+x_1=
+0\cdot
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}
++ 1\cdot
+\begin{bmatrix}
+0\\
+1
+\end{bmatrix}
++
+1\cdot
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}
++ 0\cdot
+\begin{bmatrix}
+1\\
+1
+\end{bmatrix}
+, \mbox{ which we also write as }
+\begin{bmatrix}
+0\\
+1
+\end{bmatrix}
++
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}
+\]
+
+
+\[
+x_2 =
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}
++
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}
+\]
+
+We have 
+\[
+x_1 + x_2 = 
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}
++
+\begin{bmatrix}
+0\\
+1
+\end{bmatrix}
++ 2
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}
+=
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}
++
+\begin{bmatrix}
+0\\
+1
+\end{bmatrix}
+\]
+
+\[
+x_1x_2 = 
+\left(
+\begin{bmatrix}
+0\\
+1
+\end{bmatrix}
++ 
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}
+\right)\cdot 
+\left(
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}
++
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}
+\right) =
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}
++
+\begin{bmatrix}
+0\\
+1
+\end{bmatrix}
++
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}
++
+\begin{bmatrix}
+1\\
+1
+\end{bmatrix}
+\]
+It is easy to check that
+\[
+x_1^2x_2 = 
+0\cdot
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}
++ 0\cdot
+\begin{bmatrix}
+0\\
+1
+\end{bmatrix}
++ 0\cdot
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}
++ 0\cdot
+\begin{bmatrix}
+1\\
+1
+\end{bmatrix}
+= \mathbf{\bar{0}} \text{ (additive identify)}
+\]
+}
+\end{mdframed}
+
