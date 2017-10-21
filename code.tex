@@ -1,0 +1,62 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{listings}
+\begin{document}
+\begin{lstlisting}[escapeinside={(*}{*)}]
+main() {
+    init()
+    for i = 0 i < loops {
+    	init_loop()
+        for iter = 0 to iter < (*$2^kN_1/NN_2$*)
+        evaluate_circuit(vertices, iter)
+    }
+    ret = finalize_iterations()
+    MPI_Allreduce(ret, COMM_WORLD)
+}
+
+evaluate_circuit(vertices, iter) {
+    for ss = 0 to ss < k {
+        if (ss > 0) {
+            recvd_msgs = MPI_Alltoallv()
+            if (iter ==0 && ss <2) {
+                process_recvd_msgs(recvd_msgs)
+            }        
+        }
+        
+        compute(vertices, ss, iter, recvd_msgs)
+        
+        if (ss < k-1) {
+            send_msgs(vertices, ss)
+        }
+        
+        finalize_iteration(vertices)
+    }
+}
+
+compute(vertices, ss, iter) {
+    for v in vertices {
+        if (ss ==0) {
+            reset()        
+        } else {
+            reset_ss()
+            for m in recvd_msgs {
+                for b =0 to b < (*$N_2$*) {
+                    w = ...
+                    p = ...
+                }
+            }
+        }   
+    }
+}
+
+send_msgs(vertices, ss) {
+    for v in vertices {
+        copy_msg_to_buffer(v)    
+    }
+}
+
+
+\end{lstlisting}
+\end{document}
+
