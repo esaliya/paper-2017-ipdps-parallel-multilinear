@@ -375,7 +375,7 @@
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
 %\title{Parallel Multilinear Detection and Applications}
-\title{Finding trees and anomalous subgraphs in parallel}
+\title{Finding Trees and Anomalous Subgraphs in Parallel}
 
 % author names and affiliations
 % use a multiple column layout for up to three different
@@ -440,6 +440,16 @@ with the same approach.
 % For peerreview papers, this IEEEtran command inserts a page break and
 % creates the second title. It will be ignored for other modes.
 \IEEEpeerreviewmaketitle
+
+{
+\color{red}
+\textbf{TODO:}
+\begin{itemize}
+\item Remove discussion about DAGs in Section III and replace with general dynamic programming algorithm
+\item Be upfront about the challenges of parallelizing the algorithm and that the serial implementation is amenable to parallelization.
+\item Experimental results for k-tree and the PULP partitioner.
+\end{itemize}
+}
 
 \input{introduction.tex}
 \input{preliminaries_v4.tex}
