@@ -1,18 +1,18 @@
 % !TEX root = ./multilinear.tex
 \section{Proposed parallel algorithm}
 \label{sec:proposed}
-We propose a distributed implementation of Algorithm \ref{alg:maxwt} for the $k$-MLD problem. The computation in the recursive step has a \emph{local} structure: a vertex only needs to data from its immediate neighbors in the graph. Thus, Algorithm \ref{alg:maxwt} is amenable to a vertex-centric parallelization. However, as we describe below, there are various techniques and implementation details needed to make the computation scalable and overcome high communication overheads. \comment{Someone revise the last 2 sentences, please.} 
+We propose \parmaxwt{}, a distributed implementation of Algorithm \ref{alg:maxwt} for the $k$-Path problem. The computation in the inductive step has a \emph{local} structure: a vertex only needs to data from its immediate neighbors in the graph. Thus, Algorithm \ref{alg:maxwt} is amenable to a vertex-centric parallelization. However, as we describe below, there are various techniques and implementation details needed to make the computation scalable and overcome high communication overheads. \comment{Someone revise the last 2 sentences, please.} 
 
 %Both problems \ref{prob:trees} and \ref{prob:macs} can be reduced to instances of the $k$-MLD problem, as we will discuss later in Section \ref{sec:applications}; this will automatically lead to corresponding parallel algorithms for both these problems.
 
-\subsection{Overview of the Algorithm \parmaxwt{}}
+\subsection{Overview of Algorithm \parmaxwt{}}
 Let $N$ denote the total number of
 processors or parallel units available. Quantities $N_1$ and $N_2$ are parameters for controlling the parallelism
 in different parts of the algorithm.  
 We assume $2^k/N_2$ and $N/N_1$ are integers, in order to avoid cluttering the
 notation using ceiling and floor of these quantities, respectively.
 %The algorithm involves solving a dynamic program repeatedly for a certain number of rounds. 
-The algorithm involves solving a dynamic program $2^k$ times; these $2^k$ loops are independent, and we divide them into \emph{phases} of size $N_2$ each, so that a total of $2^k/N_2$ phases have to be run. These are run in $2^k/(N_2N/N_1)$ ``batches", where each batch involves running $N/N_1$ phases. A phase involves a call to the subroutine \parcircuit{}.
+The algorithm involves solving a dynamic program $2^k$ times; these $2^k$ loops are independent, and we divide them into \emph{phases} of size $N_2$ each, so that a total of $2^k/N_2$ phases have to be run. These are run in $2^k/(N_2N/N_1)$ \emph{batches}, where each batch involves running $N/N_1$ phases. A phase involves a call to the subroutine \parcircuitpath{}.
 See Figure \ref{fig:parallel} for an illustration of this structure.
 
 We partition the graph $G$ into $N_1$ parts, denoted by
@@ -36,7 +36,7 @@ and let \maxdeg{} $ = \max_{j} \textsc{Deg}(j)$. Also, let $\maxload{} = \max_j 
 
 %\noindent
 %\textbf{High level overview.}
-We describe the main intuition of the steps of Algorithm \parmaxwt{} below.
+We describe the main steps of \parmaxwt{} below.
 \begin{enumerate}
 \item
 The algorithm starts with the partitioning $\mathcal{P}$ of the graph $G$.
@@ -46,16 +46,14 @@ The algorithm runs $\log{1/\epsilon}\log{5/4}$ rounds, each of which involves $2
 Here, $\epsilon\in(0, 1)$ is a parameter, which governs the success probability\footnote{As per Theorem \ref{theorem:kmld}, Algorithm \maxwt{} succeeds with probability 1/5, so we need to run it multiple times}. Each such round with $2^k$ iterations is partitioned into
 $2^k/N_2$ phases in the while loop in lines 8--12 of \parmaxwt{}, which are completely independent of other phases.
 \item
-In the $t$th phase, Algorithm \parcircuit{} uses a vector of size $N_2$ to store
-$\langle P(i, tN_2),\ldots, P(i, (t+1)N_2-1)\rangle$ for each node $i$; these
-will be computed simultaneously using a dynamic program.
+In the $t$th phase, Algorithm \parcircuitpath{} uses a vector of size $N_2$ to store polynomials
+$\langle P(i, tN_2, j),\ldots, P(i, (t+1)N_2-1, j)\rangle$ for each node $i$ and $j \in [1,k]$. $P(i, q, j)$ corresponds to the polynomial of node $i$ and degree $j$ for the $q^{th}$ diagonal element in the matrix representation.
 \item
-In the $t$th phase, for each node $i$, we use the vector for each neighbor $u$ of $i$ to compute $\langle P(i, tN_2),\ldots, P(i, (t+1)N_2-1)\rangle$.
-If $u$ is in the same partition, then its data is available on that processor. For every neighbor $u$ in a different partition, $u$ has to send a message with $\langle P(u, tN_2),\ldots, P(u, (t+1)N_2-1)\rangle$, introducing a communication overhead.
+In the $t$th phase, for each node $i$, we use the vector for each neighbor $u$ of $i$ to compute $\langle P(i, tN_2,j),\ldots, P(i, (t+1)N_2-1, j)\rangle$.
+If $u$ is in the same partition, then its data is available on that processor. For every neighbor $u$ in a different partition, $u$ has to send a message with $\langle P(u, tN_2, j-1),\ldots, P(u, (t+1)N_2-1,j-1)\rangle$, introducing a communication overhead.
 \item
-We use $\rootsum^{\ell}_t = P(tN_2, k) + \ldots P((t+1)N_2-1, k)$ 
-to denote the sum of the values of the root node within the phase, for round $\ell$. These are summed up
-over all the phases within round $\ell$ to compute the total, denoted by $P^{\ell}$.
+We use $\rootsum^{\ell}_t = \sum_{i\in V}P(i, tN_2, k) + \ldots + \sum_{i\in V} P(i, (t+1)N_2-1, k)$ 
+to denote the sum of the polynomial evaluations for phase $t$, within round $\ell$. These are summed up over all the phases within round $\ell$ to compute the total, denoted by $P^{\ell}$.
 \end{enumerate}
 
 \begin{figure}[h]
@@ -79,9 +77,9 @@ polynomial on $N_2$ iterations in algorithm \parcircuit{}, which are then summed
 \STATE \textbf{Input}: Graph $G=(V,E)$, parameter $k$,
 confidence parameter $\epsilon\in (0, 1)$, parameters $N_1$ and $N_2$, which guide the parallelism.
 \STATE\textbf{Output}: ``Yes" if circuit evaluation is non-zero. ``No" otherwise.
-
+\STATE 
 \STATE Let $v_i \in \mathbb{Z}_2^k$ be a random vector for each node $i$
-\STATE Let $P = \bar 0$ be the polynomial
+\STATE Let $P = 0$ be the polynomial
 \STATE Let $N_1$ denote the number of processors used for each iteration.
 %Let $\mathcal{P}=\{G^1= (V^1, E^1), \ldots, G^{N_1}=(V^{N_1}, E^{N_1})\}$ denote the corresponding
 Let $\mathcal{P}=\{G^1, \ldots, G^{N_1}\}$ denote the corresponding partition of the graph into $N_1$ parts.
@@ -93,15 +91,15 @@ Let $\mathcal{P}=\{G^1, \ldots, G^{N_1}\}$ denote the corresponding partition of
 \STATE \quad \quad \textsc{MpiBarrier}
 \STATE \quad \quad $P^{\ell} = P^{\ell} + \sum_{t=s N/N_1}^{(s+1)N/N_1} \rootsum^{\ell}_{t} \mod 2^{k+1}$ using \textsc{MpiReduce}
 \STATE \textbf{if} $P^{\ell}\neq 0$ for some $\ell$
-\STATE \quad \textbf{return} \textbf{True}
+\STATE \quad \textbf{return} ``Yes"
 \STATE \textbf{else} 
-\STATE \quad \textbf{return} \textbf{False}
+\STATE \quad \textbf{return} ``No"
 \end{algorithmic}
 \end{algorithm}
 
 \begin{algorithm}{}
 \small
-\caption{\parcircuit{$(G, k, \mathbf{v}, t, N_2, N_1, \mathcal{P})$}}
+\caption{\parcircuitpath{$(G, k, \mathbf{v}, t, N_2, N_1, \mathcal{P})$}}
 \label{alg:parEvaluate} 
 \begin{algorithmic}[1]
 %\STATE \textbf{Procedure} \parcircuit{$(G(V, E), k, \mathcal{L}, \mathbf{v}, t, p)$}
@@ -109,15 +107,15 @@ Let $\mathcal{P}=\{G^1, \ldots, G^{N_1}\}$ denote the corresponding partition of
 \STATE
 \STATE \textbf{for} processor $s$ \textbf{do in parallel}
 \STATE \quad \textbf{Base case}
-\STATE \quad \textbf{for} node $i \in G^s$ and iteration $q \in tN_2,\ldots,(t+1)N_2-1$ \textbf{do}
+\STATE \quad \textbf{for} node $i \in G^s$ and iteration $q \in [tN_2,(t+1)N_2-1]$ \textbf{do}
 \STATE \qquad $ P(i, q, 1) = 1 + (-1)^{v_i^T \cdot q_{\text{bin}}}$
 
 \STATE \quad \textbf{Recursive step}
 \STATE \quad \textbf{for} $j=2$ to $k$ \textbf{do}
 \STATE \qquad \textbf{for} vertex $i \in G^s$ \textbf{do}
-\STATE \qquad \quad \textbf{for} all $q$ set $P(i,q,  j) = \bar 0$
-\STATE \qquad \quad \textbf{for} each incoming message $\langle u, P(u, q, [1, j-1])\rangle$ \textbf{do}
-\STATE \qquad \qquad $P(i, q, j)=$ $P(i, q, [1, j-1])  P(u, q, [1, j-1])$
+\STATE \qquad \quad \textbf{for} all $q$ set $P(i,q,  j) = 0$
+\STATE \qquad \quad \textbf{for} each incoming message $\langle u, P(u, q, j-1)\rangle$ \textbf{do}
+\STATE \qquad \qquad $P(i, q, j)= P(i, q, j) + P(i, q, 1)  P(u, q, j-1)$
 \STATE \qquad \quad  \textbf{Send result to neighbors}
 \STATE \qquad \quad \textbf{for} $u \in \nbr(i)\setminus G^s$ \textbf{do}
 \STATE \qquad \qquad \textbf{Send} $\langle i, P(i, q, j)\rangle$
@@ -126,47 +124,49 @@ Let $\mathcal{P}=\{G^1, \ldots, G^{N_1}\}$ denote the corresponding partition of
 \end{algorithmic}
 \end{algorithm}
 
+
+\subsection{Computation and Communication Complexity}
 Recall the definition of $\maxdeg{}$ corresponding to the partitioning $\mathcal{P}$.
 Further, let $c_1$ and $c_2$ denote the time for unit computation at any node in $G$
-and the unit communication along any edge, respectively, in the Algorithm \parcircuit{}.
+and the unit communication along any edge, respectively, in the Algorithm \parcircuitpath{}.
 The time and communication complexity of algorithm \parmaxwt{} is summarized below
 in terms of these parameters. 
 
 \begin{theorem}
 \label{thm:parmaxwt}
 For any $\epsilon\in(0, 1)$,
-Algorithm \parmaxwt{} solves the \textsc{$k$-MLD} problem for an
+Algorithm \parmaxwt{} solves the \textsc{$k$-Path} problem for an
 instance $P(x_1,\ldots,x_n)$ with probability at least $1-\epsilon$. The total time for
 computation and communication are $O\left(c_1\frac{2^kN_1}{N}k \maxload{}\log{1/\epsilon}\right)$ 
 and $O\left(c_2\frac{2^kN_1}{N N_2}k \maxdeg{}\log{1/\epsilon}\right)$, respectively.
 \end{theorem}
 \begin{proof} (Sketch)
 First, we argue the correctness. 
-The call to \parcircuit{} evaluates the polynomial bottom up in parallel for all iterations in the
+The call to \parcircuitpath{} evaluates the polynomial bottom up in parallel for all iterations in the
 $t$th phase, namely iterations $tN_2,\ldots,(t+1)N_2-1$. The vector
 $\langle P(tN_2, k),  \ldots ,P((t+1)N_2-1, k)\rangle$
 is the final evaluation of the polynomial for each iteration in this phase.
-Each call to \parcircuit{} in Algorithm \parmaxwt{}
+Each call to \parcircuitpath{} in Algorithm \parmaxwt{}
 returns the sum of these values for phase $t$.
 Each round of Algorithm \parmaxwt{}, corresponding to the value of
 $\ell$ in the outer for loop in lines 6--12, goes over all phases, and
-calls \parcircuit{}. Therefore, within round $\ell$, $P^{\ell}$ denotes the
+calls \parcircuitpath{}. Therefore, within round $\ell$, $P^{\ell}$ denotes the
 sum of the polynomial evaluation over all the $2^k$ iterations within that round.
 If $P(\cdot)$ has a multilinear term,
 from \cite{koutis:icalp08,williams2009finding}, $P^{\ell}\neq 0 \text{ mod }2^{k+1}$ with
 probability at least $1/5$. This implies that 
 $\Pr[P^{\ell} = 0,\ \forall \ell] = (\frac{4}{5})^{(\log{1/\epsilon})/(\log{5/4})}\leq\epsilon$,
-so that with probability at least $1-\epsilon$, \parmaxwt{} returns true.  On the other hand,
+so that with probability at least $1-\epsilon$, \parmaxwt{} returns ``Yes" if $G$ has a $k$-path.  On the other hand,
 if $P(\cdot)$ has no multilinear term, then with probability $1$, $P^{\ell}=0$ for all $\ell$.
-Therefore, \parmaxwt{} correctly solves the \textsc{$k$-MLD} problem with probability
+Therefore, \parmaxwt{} correctly solves the \textsc{$k$-Path} problem with probability
 at least $1-\epsilon$.
 
 Next, we consider the computation and communication time complexity. 
-The algorithm \parcircuit{} computes the polynomial for each degree up to $k$ within each iteration.
+The algorithm \parcircuitpath{} computes the polynomial for each degree up to $k$ within each iteration.
 Therefore, the computation time in a phase $t$ is 
 $O(c_1 k \max_j |G^j| N_2) = O(c_1k\maxload{}N_2)$, which is the maximum time for any processor. Therefore, the total compute time over all the rounds is
 $O(\frac{2^k/N_2}{N/N_1} c_1 k \maxload{} N_2)$, which corresponds to the bound in the theorem.
-After any evaluation in the recursive step, the results have to be sent on all neighbors, for every pair of
+After the evaluation in the recursive step, the results have to be sent on all neighbors, for every pair of
 processors $s, s'$. Therefore, the maximum number of messages in one iteration of the loop in lines 8--15 is $\maxdeg{}$, and the total number of messages, over all the rounds, is
 $O(\frac{2^k/N_2}{N/N_1} \maxdeg{}) = O(\frac{2^kN_1}{N N_2} \maxdeg{})$.
 \end{proof}

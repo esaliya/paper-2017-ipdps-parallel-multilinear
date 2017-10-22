@@ -298,13 +298,12 @@ $$
 (v_0 + v_i)^2 = v_0^2 + 2(v_0\cdot v_i) + v_i^2 = v_0 + (0\mod 2)v_i + v_0 = 2v_0 = 0.
 $$}
 
-The main idea in the algorithm of \cite{koutis:icalp08} is that, if we evaluate a polynomial 
-over the ``right" algebra, monomials that have square terms evaluate to 0, and the remaining terms,
-which are multilinear, do not cancel out, with some probability.
-Then, a polynomial $P(X)$ has a $k$ multilinear term if $P(X) \neq 0$. 
+%The main idea in the algorithm of \cite{koutis:icalp08} is that, if we evaluate a polynomial over the ``right" algebra, monomials that have square terms evaluate to 0, and the remaining terms, which are multilinear, do not cancel out, with some probability. Then, a polynomial $P(X)$ has a $k$ multilinear term if $P(X) \neq 0$. 
 
 We can show that, if we choose a $v_i \in \mathbb{Z}_2^k$ uniformly at random and set $x_i = v_0 + v_i$, then a multilinear monomial does \textbf{not} evaluate to $\bar 0$ with high probability, whereas a monomial with squares is always $\bar 0$ (as in the box above).
-The algorithm was later refined in \cite{williams2009finding} by evaluating the polynomial over the group algebra $GF(2^{3 + \log_2k})[\mathbb{Z}_2^k]$, where $GF(p)$ is the finite field of order $p$ \cite{mullen2007finite}. A polynomial $P(x_1,\ldots,x_n)$ with variables from $GF(2^{3 + \log_2k})[\mathbb{Z}_2^k]$ can be evaluated in time $O(2^k poly(n))$ and space $O(kpoly(n))$, resulting in Theorem \ref{theorem:kmld}.
+The algorithm was later refined in \cite{williams2009finding} by evaluating the polynomial over the group algebra $GF(2^{3 + \log_2k})[\mathbb{Z}_2^k]$, where $GF(p)$ is the finite field of order $p$ \cite{mullen2007finite}, and this is the version that we implement. But, to simplify the discussion below, we assume that we are working on the group algebra $\mathbb{Z}_2[\mathbb{Z}_2^k]$. 
+
+A polynomial $P(x_1,\ldots,x_n)$ with variables from $\mathbb{Z}_2[\mathbb{Z}_2^k]$ can be evaluated in time $O(2^k poly(n))$ and space $O(2^kpoly(n))$, resulting in Theorem \ref{theorem:kmld}.
 
 \begin{theorem}[Koutis \cite{koutis:icalp08} and Williams \cite{williams2009finding}]
 \label{theorem:kmld}
@@ -312,13 +311,13 @@ There exists an algorithm that, given an instance $P(x_1,\ldots,x_n)$ of the \te
 The algorithm has time complexity $O(2^k poly(n))$ and space complexity $O(2^k poly(n))$.
 \end{theorem}
 
-At a high level, the algorithm of \cite{koutis:icalp08} involves the following steps.
-\begin{enumerate}
-\item For each variable $x_i$, sample a vector $v_i$ uniformly at random from $\mathbb{Z}_2^k$ and assign $x_i = (v_0 + v_i) \in \mathbb{Z}_2[\mathbb{Z}_2^k]$.
-\item Evaluate the polynomial $P(x_1,\ldots,x_n)$ on this random assignment.
-\item If $P(x_1,\ldots,x_n) \neq \bar{0}$ return ``yes"; otherwise, return ``no",
-where $\bar{0}$ is the additive identity of the group algebra.
-\end{enumerate}
+%At a high level, the algorithm of \cite{koutis:icalp08} involves the following steps.
+%\begin{enumerate}
+%\item For each variable $x_i$, sample a vector $v_i$ uniformly at random from $\mathbb{Z}_2^k$ and assign $x_i = (v_0 + v_i) \in \mathbb{Z}_2[\mathbb{Z}_2^k]$.
+%\item Evaluate the polynomial $P(x_1,\ldots,x_n)$ on this random assignment.
+%\item If $P(x_1,\ldots,x_n) \neq \bar{0}$ return ``yes"; otherwise, return ``no",
+%where $\bar{0}$ is the additive identity of the group algebra.
+%\end{enumerate}
 
 %For the case when a multilinear monomial appears an odd number of times in $P(X)$, Koutis proposed a randomized algorithm that runs in $O(2^k poly(n))$ time and returns an affirmative answer with probability at least $1/4$ \cite{koutis:icalp08}. This algorithm was later extended by Williams \cite{williams2009finding} to allow even repetitions.
 
@@ -351,38 +350,54 @@ where $\bar{0}$ is the additive identity of the group algebra.
 
 %\comment{add sequential algorithm in supplementary and refer to it here}
 
-\subsection{Implementation Using a Matrix Representation $\mathbb{Z}_2[\mathbb{Z}_2^k]$}
+\subsection{Implementation Using a Matrix Representation of $\mathbb{Z}_2[\mathbb{Z}_2^k]$}
 Theorem \ref{theorem:kmld} performs operations in the group algebra $\mathbb{Z}_2[\mathbb{Z}_2^k]$,
-which takes $O(2^k poly(n))$ space. Koutis \cite{koutis:icalp08} showed that, in fact, the space
-complexity can be reduced to $O(k poly(n))$ by using the idea of matrix representations.
-%We describe this approach here and then the sequential algorithm \maxwt{} for $k$-MLD. We will develop the parallel version of this algorithm in Section \ref{sec:proposed}.
-We use the notation from \cite{koutis:icalp08} and describe it here for completeness.
-Let $\rho:\mathbb{Z}_2^k\rightarrow M^{2^k\times 2^k}$ be a matrix representation of
-$\mathbb{Z}_2^k$ satisfying $\rho(uv)=\rho(u)\rho(v)$ for all $u, v\in \mathbb{Z}_2^k$.
-For $k=1$, the map $\rho:\mathbb{Z}_2\rightarrow M^{2\times 2}$ is defined as
-\[
-\rho(0) = 
-\begin{bmatrix}
-1 & 0\\
-0 & 1
-\end{bmatrix}
-\mbox{ and }
-\rho(1) = 
-\begin{bmatrix}
-0 & 1\\
-1 & 0
-\end{bmatrix}
-\]
+which takes $O(2^k poly(n))$ space. Koutis \cite{koutis:icalp08} showed that, in fact, the space complexity can be reduced to $O(k poly(n))$ by using the idea of matrix representations.
+%We use the notation from \cite{koutis:icalp08} and describe it here for completeness.
+%Let $\rho:\mathbb{Z}_2^k\rightarrow M^{2^k\times 2^k}$ be a matrix representation of
+%$\mathbb{Z}_2^k$ satisfying $\rho(uv)=\rho(u)\rho(v)$ for all $u, v\in \mathbb{Z}_2^k$.
+%For $k=1$, the map $\rho:\mathbb{Z}_2\rightarrow M^{2\times 2}$ is defined as
+%\[
+%\rho(0) = 
+%\begin{bmatrix}
+%1 & 0\\
+%0 & 1
+%\end{bmatrix}
+%\mbox{ and }
+%\rho(1) = 
+%\begin{bmatrix}
+%0 & 1\\
+%1 & 0
+%\end{bmatrix}
+%\]
+%
+%In general, $\rho(\mathbb{Z}_2^k)$ can be defined recursively. We will use a
+%simultaneous diagonalization, which allows $\rho(v)$ to be represented as
+%$\rho(v) = U^{-1}\Lambda_v U$, for each $v\in \mathbb{Z}_2^k$, where $\Lambda_v$ is
+%a diagonal matrix with its $t$th element equal to $(-1)^{v^T t_{bin}}$,
+%where $t_{\text{bin}}$ is the $k$-bit binary representation of $t$.
+%Since the algorithm substitutes $v_0+v_i$ for each variable $x_i$, the $t$th element of the diagonal element in the corresponding
+%representation for $\rho(v_0+v)$ is $1+(-1)^{v^T t_{bin}}$.
+The main idea is that every element of the group algebra can be represented as a $2^{k}\times2^k$ matrix, and the polynomial $P(X)$ evaluates to $\bar 0$ if and only if the trace of its corresponding matrix representation is $0 \mod 2^{k+1}$. We can compute the trace by evaluating the polynomial over the group of all integers $2^k$ times, once for each element of the diagonal. For each variable $x_i = v_0 + v_i$, the $t$th diagonal element in the corresponding matrix representation is $1+(-1)^{v^T t_{bin}}$, where $t_{\text{bin}}$ is the $k$-bit binary representation of $t$.
 
-In general, $\rho(\mathbb{Z}_2^k)$ can be defined recursively. We will use a
-simultaneous diagonalization, which allows $\rho(v)$ to be represented as
-$\rho(v) = U^{-1}\Lambda_v U$, for each $v\in \mathbb{Z}_2^k$, where $\Lambda_v$ is
-a diagonal matrix with its $t$th element equal to $(-1)^{v^T t_{bin}}$,
-where $t_{\text{bin}}$ is the $k$-bit binary representation of $t$.
-Since the algorithm substitutes $v_0+v_i$ for each variable $x_i$, the $t$th element of the diagonal element in the corresponding
-representation for $\rho(v_0+v)$ is $1+(-1)^{v^T t_{bin}}$.
+\subsection{Application to $k$-Path}
+As an example of the multilinear detection technique, we now describe a sequential algorithm for the $k$-Path problem. We are given a graph $G(V,E)$ and a parameter $k$, and the algorithm decides whether or not the graph has a path of length $k$. First, we reduce $k$-Path to a $k$-MLD instance (this follows from \cite{koutis:icalp08, williams2009finding}). Given a graph $G(V, E)$, let $x_i$ denote a variable associated with each node $i\in V$.
+We define poynomials $P(i, j)$ for all $i\in V$, $j\leq k$ in the following manner.
 
-We now describe the sequential algorithm \maxwt{} for the $k$-MLD problem (Algorithm \ref{alg:maxwt}). We are given a graph $G(V,E)$ and a parameter $k$, and the algorithm decides whether or not a polynomial $P$ evaluates to $\bar 0$ in the group algebra. With the matrix representation, the polynomial is evaluated over $2^k$ iterations (lines 6---12). In each iteration, we first initialize $P(i, 1)$, which represents the value of a monomial of degree 1 corresponding to variable $x_i$ (lines 7--8). From there, we compute recursively $P(i,j)$, a polynomial where each term contains $x_i$ and has degree $j$ (lines 9--11). The computation of$P(i,j)$ for a node $i$ uses data from the immediate neighbors of $i$ and all the polynomials of degree $j-1$, which have already been computed at this point. The applications that we consider in Section \ref{sec:applications} have this structure.
+\begin{itemize}
+\item
+$P(i, 1) = x_i$ for all $i\in V$
+\item
+For $j>1$,
+$P(i, j) = \sum_{u\in\nbr(i)} P(i,1)P(u, j-1)$
+\item
+Define the polynomial $P(x_1,\ldots,x_n) = \sum_i P(i, k)$
+\end{itemize}
+
+Intuitively, a polynomial $P(i, j)$ encodes all the possible walks of length $j$ ending at node $i$. Each monomial in $P(i,j)$ corresponds to one walk. It can be verified that the graph $G$ has a path of length $k$ if and only if the polynomial $P(x_1,\ldots,x_n)$ has a multilinear term---i.e., a walk with no repeated vertices. 
+
+Algorithm \ref{alg:maxwt} presents the full procedure. With the matrix representation, the polynomial for $k$-Path is evaluated over $2^k$ iterations (lines 6---12). In each iteration, we first initialize $P(i, 1)$, which represents a monomial of degree 1 corresponding to variable $x_i$
+(lines 7--8). From there, we compute recursively $P(i,j)$, a polynomial where each term contains $x_i$ and has degree $j$ (lines 9--11). The computation of$P(i,j)$ for a node $i$ uses data from the immediate neighbors of $i$ and all the polynomials of degree $j-1$, which have already been computed at this point. The two applications that we consider in Section \ref{sec:applications} have this structure.
 
 \begin{algorithm}{}
 \small
@@ -392,16 +407,18 @@ We now describe the sequential algorithm \maxwt{} for the $k$-MLD problem (Algor
 \STATE \textbf{Input}: Graph $G(V, E)$ and parameter $k$
 \STATE\textbf{Output}: ``Yes" if $P$ is non-zero, ``No" otherwise.
 \STATE
-\STATE For each node $i$, pick a random vector $x_i \in \mathbb{Z}_{2}^k$
-\STATE $P = \bar 0$
+\STATE For each node $i$, pick a random vector $v_i \in \mathbb{Z}_{2}^k$
+\STATE $P = 0$
 \STATE \textbf{for} $t = 0$ to $2^{k-1}$
-\STATE \quad \textbf{for} $i \in V$ \textbf{do} (base case)
-\STATE \quad \quad $P(i, 1) = 1 + (-1)^{x_i^T \cdot t_{\text{bin}}}$
-\STATE \quad \textbf{for} $i \in V$, $j = 2$ to $k$ \textbf{do} (recursive step)
+\STATE \quad \textbf{Base case}
+\STATE \quad \textbf{for} $i \in V$ \textbf{do}
+\STATE \quad \quad $P(i, 1) = 1 + (-1)^{v_i^T \cdot t_{\text{bin}}}$
+\STATE \quad \textbf{Inductive step}
+\STATE \quad \textbf{for} $i \in V$, $j = 2$ to $k$ \textbf{do}
 \STATE \quad \quad
-$P(i,j) = \sum_{u \in \nbr(i)} P(i, [1, j-1])P(u, [1, j-1])$
-\STATE \quad $P(j) = \sum_i P(i,j)$ for $i \in V$
-\STATE \quad $P = P + P(j)  \mod 2^{k+1}$
-\STATE \textbf{return} ``Yes" if $P \neq \bar 0$, else ``No"
+$P(i,j) = \sum_{u \in \nbr(i)} P(i, 1)P(u, j-1)$
+\STATE \quad $P(k) = \sum_i P(i,k)$ for $i \in V$
+\STATE \quad $P = P + P(k)  \mod 2^{k+1}$
+\STATE \textbf{return} ``Yes" if $P \neq 0$, else ``No"
 \end{algorithmic}
 \end{algorithm}
