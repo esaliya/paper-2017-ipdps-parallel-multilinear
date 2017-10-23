@@ -9,8 +9,8 @@ approach can be extended more broadly.
 \noindent
 %\textbf{Finding Paths and Trees}
 \subsubsection{Finding Paths and Trees}
-Given a graph $G=(V, E)$ with $n=|V|$, $m=|E|$, and a subgraph $H=(V_H, E_H)$, with $k=|V_H|$, the basic subgraph isomorphism problem involves finding a mapping $f:V_H\rightarrow V$,
-such that $(i, j)\in E_H$ if and only if $(f(i), f(j))\in E$.
+Given a graph $G=(V, E)$ with $n=|V|$, $m=|E|$, and a subgraph $H=(V_H, E_H)$, with $k=|V_H|$, the problem of finding a non-induced embedding involves finding a mapping $f:V_H\rightarrow V$,
+such that $(i, j)\in E_H$ if $(f(i), f(j))\in E$.
 
 \begin{problem} ($k$-Tree)
 \label{prob:trees}
@@ -19,6 +19,7 @@ denoted by $H=(V^H, E^H)$ with $|V^H|=k$, the objective is to determine if there
 an embedding of $H$ in $G$.
 \end{problem}
 
+The $k$-Tree problem is hard to solve exactly. Therefore, we study an \emph{approximate} version, where the goal is to determine if an embedding exists with probability at least $1-\delta$, where $\delta\in(0, 1)$ is a parameter.
 Other common variants of this problem are: (1) counting all embeddings, and (2) finding a maximum
 weight embedding in a weighted version of the graph; our approach can be extended to all
 these variants.
@@ -53,28 +54,30 @@ The graph anomaly detection problem can be posed as the following constrained op
 Given a graph $G=(V, E)$, a scan statistic $F(\cdot)$, the associated counts for vertices---$\mathbf{w}$ and $\mathbf{b}$---and a parameter $k$, find a connected subset $S\subseteq V$ that maximizes $F(S) = F(W(S), B(S), \theta)$ with $B(S) \leq k$.
 \end{problem}
 
-\noindent
-\textbf{Our approach.} Problems \ref{prob:trees} and \ref{prob:macs} are seemingly very different,
-and they are computationally very challenging. Problem \ref{prob:macs}
-has been shown to be NP-hard in general \cite{cadena:sdm17}. Finding paths of length at least $k$
-is NP-hard when $k$ is large. We will focus on the setting where $k$ is small, e.g., $O(\log{n})$.
-The only prior approach that has given parallel algorithms with rigorous bounds for these two problems involves the use of the technique called \emph{color coding} (\cite{alon2008biomolecular, huffner2008algorithm,
-alon1995color} for Problem \ref{prob:trees} and \cite{cadena:sdm17} for Problem \ref{prob:macs}).
-However, color coding has a significant memory overhead, and we propose a new approach
-based on an algebraic technique that involves detecting multilinear terms in multivariate polynomials.
-We first discuss the basic theoretical concepts needed for this approach, and then the seminal
-algorithm of \cite{DBLP:journals/talg/KoutisW16, williams2009finding} for multilinear detection.
-Our approach involves two steps:
-\begin{itemize}
-\item
-We develop an MPI-based parallel algorithm for multilinear detection of any multivariate
-polynomial.%, represented as a directed acyclic graph (DAG) (Section \ref{sec:proposed}).
-\item
-We show that both our problems can be reduced to multilinear detection for suitably defined
-polynomials, and thus can be solved in parallel. %The parallel algorithm in Section \ref{sec:proposed} is described for any multivariate polynomial, represented as a DAG, and serves as an abstraction.% for describing both algorithms. 
-We discuss how the specific
-polynomials are constructed for our problems.
-\end{itemize}
+Problem \ref{prob:macs} is NP-hard, in general, as shown in \cite{cadena:sdm17}. Therefore, we focus on the problem of finding a subgraph $S$ such that $F(S)$ is the optimum value with probability at least $1-\delta$, for a parameter $\delta\in(0, 1)$.
+
+% \noindent
+% \textbf{Our approach.} Problems \ref{prob:trees} and \ref{prob:macs} are seemingly very different,
+% and they are computationally very challenging. Problem \ref{prob:macs}
+% has been shown to be NP-hard in general \cite{cadena:sdm17}. Finding paths of length at least $k$
+% is NP-hard when $k$ is large. We will focus on the setting where $k$ is small, e.g., $O(\log{n})$.
+% The only prior approach that has given parallel algorithms with rigorous bounds for these two problems involves the use of the technique called \emph{color coding} (\cite{alon2008biomolecular, huffner2008algorithm,
+% alon1995color} for Problem \ref{prob:trees} and \cite{cadena:sdm17} for Problem \ref{prob:macs}).
+% However, color coding has a significant memory overhead, and we propose a new approach
+% based on an algebraic technique that involves detecting multilinear terms in multivariate polynomials.
+% We first discuss the basic theoretical concepts needed for this approach, and then the seminal
+% algorithm of \cite{DBLP:journals/talg/KoutisW16, williams2009finding} for multilinear detection.
+% Our approach involves two steps:
+% \begin{itemize}
+% \item
+% We develop an MPI-based parallel algorithm for multilinear detection of any multivariate
+% polynomial.%, represented as a directed acyclic graph (DAG) (Section \ref{sec:proposed}).
+% \item
+% We show that both our problems can be reduced to multilinear detection for suitably defined
+% polynomials, and thus can be solved in parallel. %The parallel algorithm in Section \ref{sec:proposed} is described for any multivariate polynomial, represented as a DAG, and serves as an abstraction.% for describing both algorithms. 
+% We discuss how the specific
+% polynomials are constructed for our problems.
+% \end{itemize}
 
 
 \section{$k$-Multilinear Detection and Sequential Algorithms}

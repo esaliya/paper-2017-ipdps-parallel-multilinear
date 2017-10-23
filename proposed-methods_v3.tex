@@ -1,7 +1,7 @@
 % !TEX root = ./multilinear.tex
 \section{Proposed parallel algorithm}
 \label{sec:proposed}
-We propose a distributed implementation of Algorithm \ref{alg:maxwt} for the $k$-MLD problem. The computation in the recursive step has a \emph{local} structure: a vertex only needs to data from its immediate neighbors in the graph. Thus, Algorithm \ref{alg:maxwt} is amenable to a vertex-centric parallelization. However, as we describe below, there are various techniques and implementation details needed to make the computation scalable and overcome high communication overheads. \comment{Someone revise the last 2 sentences, please.} 
+We propose a distributed implementation of Algorithm \ref{alg:maxwt} for the $k$-MLD problem. The computation in the recursive step has a \emph{local} structure: a vertex only needs data from its immediate neighbors in the graph. Thus, Algorithm \ref{alg:maxwt} is amenable to a vertex-centric parallelization. However, as we describe below, there are various techniques and implementation details needed to make the computation scalable and overcome high communication overheads. \comment{Someone revise the last 2 sentences, please.} 
 
 %Both problems \ref{prob:trees} and \ref{prob:macs} can be reduced to instances of the $k$-MLD problem, as we will discuss later in Section \ref{sec:applications}; this will automatically lead to corresponding parallel algorithms for both these problems.
 

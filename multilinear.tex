@@ -355,6 +355,7 @@
 \newcommand{\algcircuit}{\textsc{EvaluatePolynomial}}
 \newcommand{\parcircuit}{\textsc{ParEvaluatePolynomial}}
 \newcommand{\algpregel}{\textsc{EvaluateNode}}
+\newcommand{\ouralgo}{\textsc{ParMuD}}
 \newcommand{\pred}{\textsc{pred}}
 \renewcommand{\succ}{\textsc{succ}}
 \newcommand{\val}{\textsc{val}}
@@ -366,6 +367,11 @@
 \newcommand{\nbr}{\textsc{Nbr}}
 \newcommand{\myroot}{\textsc{root}}
 
+\newcommand{\uswick}[2]{} %comment by udayanga
+
+\definecolor{comment-red}{rgb}{0.8,0,0}
+\newcommand{\Red}[2]{{\color{comment-red}{#1}}}
+
 \begin{document}
 %
 % paper title
@@ -375,13 +381,14 @@
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
 %\title{Parallel Multilinear Detection and Applications}
-\title{Finding Trees and Anomalous Subgraphs in Parallel}
+\title{ParMud: High Performance Parallel Multilinear Detection}
 
 % author names and affiliations
 % use a multiple column layout for up to three different
 % affiliations
 \author{\IEEEauthorblockN{Saliya Ekanayake}
-\IEEEauthorblockA{Biocomplexity Institute\\
+\IEEEauthorblockA{Network Dynamics and \\
+Simulation Science Laboratory (NDSSL)\\
 Virginia Tech}
 \and
 \IEEEauthorblockN{Jose Cadena}
