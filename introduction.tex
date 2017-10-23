@@ -4,91 +4,180 @@
 Many problems in graph mining and social network analysis can be reduced to questions
 about different kinds of subgraphs; two important classes of such problems, which 
 are the focus of our paper, are:
-(1) \emph{Detecting subgraphs}, such as paths and trees, of a given size $k$---these are used
+(1) \emph{Detecting and counting subgraphs}, such as paths and trees, of a given size $k$---these are used
 for characterizing different kinds of networks, especially in biological models
 \cite{alon2008biomolecular, huffner2008algorithm}.
 (2) \emph{Anomaly detection in networked data using graph scan statistics}, which involves finding
 connected subgraphs of size $k$, optimizing different kinds of objectives \cite{Speakman-14,leiserson2015pan,
-hansen2016finding, \iftoggle{refsfull}{neil2013scan,} chen2014non}.
-This problem arises in a number of applications, such as social network analysis, 
-epidemiology, finance, and bio-surveillance. We refer to the survey by 
-Akoglu et al. \cite{akoglu2014graph} for a detailed discussion on different approaches 
-to graph anomaly detection.
+hansen2016finding, \iftoggle{refsfull}{neil2013scan,} chen2014non}---this
+arises in a number of applications, such as social network analysis, 
+epidemiology, finance, and bio-surveillance (see \cite{akoglu2014graph} for a survey).
 
-The problems of subgraph detection and scan statistics are NP-hard, in general, making them 
-computationally very challenging. Various sequential heuristics have been proposed for
-both these problem classes, e.g.,
-\cite{alon2008biomolecular, huffner2008algorithm, Speakman-14,leiserson2015pan,
-hansen2016finding, \iftoggle{refsfull}{neil2013scan,} chen2014non, cheng:kdd12}. However, these
-do not scale to large instances, motivating the need for parallel implementations.
-There has been a fair amount of work on parallel algorithms for various kinds of subgraph
-problems, e.g., \cite{zhao2012sahad, slota:icpp13, slota:ipdps14, arif:cikm13, 
-schmidt2009scalable, zhao2016parallel, aparicio:ispa14, du:mcd09}, but very little for
-anomaly detection using graph scan statistics \cite{zhao2016parallel}.
-
-
-Most of these parallel algorithms involve heuristics based on partitioning, pruning, and 
-enumeration for speeding up the computations to fairly large graphs---e.g., for 
-maximal cliques \cite{schmidt2009scalable, zhao2016parallel, aparicio:ispa14, cheng:kdd12, du:mcd09}.
-One of the few rigorous approaches for subgraph counting that has been used for
-developing parallel algorithms is based on the ``color coding'' technique
-\cite{alon2008biomolecular, alon1995color}, which gives a rigorous \emph{fixed parameter tractable} algorithm\footnote{This means the running time is $O(f(k)n^c)$, where
-$n$ is the number of nodes, $c$ is a constant, and $f(\cdot)$ is a function of some other
-parameter---in this case, it is the size of the subgraph \cite{downey}.}
-for finding and counting subgraphs. Color coding is a dynamic programming algorithm,
-and multiple approaches have been developed for parallelizing it 
-\cite{zhao2012sahad, slota:icpp13, slota:ipdps14}; the FASCIA algorithm of \cite{slota:icpp13, slota:ipdps14}
-which is implemented in MPI is the state-of-the-art, and can handle trees
-of size up to 12 in graphs with millions of nodes. 
-Color coding has also been used to develop a
-sequential algorithm for graph scan statistics \cite{cadena:sdm17}, but no parallel
-adaptations exist so far.
-A big challenge of the color coding technique is the memory overhead, since
-it scales as $2^k$, where $k$ denotes the subgraph size, which limits further
-scaling to larger graphs or subgraphs.  
-
-In this paper, we develop a novel approach for designing highly scalable parallel
-algorithms for both the problem classes mentioned above, by adapting
-powerful algebraic techniques for
-detecting multilinear terms in a multivariate polynomial developed by 
+These problems are computationally very challenging. For instance, exact detection of
+paths is NP-hard and the corresponding counting problem is \#P-hard. Development
+of parallel algorithms for these problems has been an active area of research.
+Many parallel algorithms exist for counting local subgraphs, such as triangles, 
+e.g., \cite{arif:cikm13, schmidt2009scalable, aparicio:ispa14, du:mcd09}. 
+Finding trees is much harder, and a number of heuristics have been developed. One
+of the few techniques that gives rigorous approximation guarantees is
+\emph{color coding} \cite{alon2008biomolecular, alon1995color, huffner2008algorithm}.
+Parallel adaptations have been developed using MapReduce \cite{zhao2012sahad} and
+MPI \cite{slota:icpp13, slota:ipdps14}. The MPI based 
+FASCIA algorithm \cite{slota:icpp13, slota:ipdps14} is the state-of-the-art in terms of 
+counting trees in massive networks---it is able to scale to trees with up to 12 vertices,
+and billion edges. However, it seems very hard to scale the color coding
+method to larger subgraphs, even on smaller networks. The main reason is that the
+time and space complexity of the color coding technique 
+both scale as $2^k$, where $k$ denotes the subgraph size.
+In this paper, we take the first steps towards beating this bound,
+which has remained a significant open problem since \cite{slota:ipdps14}.
+We approach involves parallelization of a powerful algebraic technique for
+detecting multilinear terms in a multivariate polynomial, developed by
 Koutis \cite{koutis:icalp08} and Williams \cite{williams2009finding}.
+
+Optimizing network scan statistics leads to challenging optimization problems.
+Color coding has also been used to develop the first method with rigorous approximation
+guarantees \cite{cadena:sdm17}; however, this has not been parallelized because of
+its high memory overhead. In \cite{cadena:bigdata17}, we have developed a
+parallel adaptation of the multilinear detection technique using Giraph. However,
+this does not scale beyond networks with 40 million edges.
+
+In this paper, we develop a distributed algorithm for multilinear detection,
+which immediately leads to highly scalable algorithms for both paths and trees,
+and network scan statistics.
 Our contributions are:
 
 \noindent
-\textbf{1. Efficient algorithms for parallel multilinear detection
+\textbf{1. \ouralgo{}: Distributed algorithm for multilinear detection
 and applications to subgraph analysis.}
-We develop a distributed MPI based algorithm for detecting 
+We develop \ouralgo{}, a distributed MPI based algorithm for finding
+paths and trees through detection of
 multilinear terms with $k$ variables of the form $x_{i_1}x_{i_2}\ldots x_{i_k}$ (i.e., a term in
 which all variables have exponent 1) in a multivariate polynomial
-$P(x_1,\ldots,x_n)$---this is referred to as the $k$-Multilinear Detection (\textsc{$k$-MLD}) problem
-\cite{koutis:icalp08, williams2009finding}. The problem of finding paths and trees can
-be reduced to the \textsc{$k$-MLD} problem \cite{koutis:icalp08}. We also show that the
-network scan statistics problem can also be reduced to the \textsc{$k$-MLD} problem.
-Consequently, our parallel multilinear detection algorithm leads to parallel algorithms
-for both these problems. Our methods provably
-have better space and running time complexity compared to the color coding technique.
-The space complexity is $O(kn)$ compared to $O(2^kn)$, whereas the running time complexity is proportional to $O(2^k)$, compared to $O(2^ke^k)$
-\cite{zhao2012sahad, slota:icpp13, slota:ipdps14}.
+$P(x_1,\ldots,x_n)$ (which is referred to as the $k$-Multilinear Detection (\textsc{$k$-MLD}) problem
+\cite{koutis:icalp08, williams2009finding}). The sequential algorithm uses a matrix representation
+of a group algebra (as will be described later), and its structure lends itself to a natural
+parallelization.  We give rigorous bounds on the performance in terms of the time and
+space complexity, which scale as
+$O(2^k)$ and $O(k)$, respectively, compared with $O(2^ke^k)$ and $O(2^k)$ for
+color coding, respectively \cite{zhao2012sahad, slota:icpp13, slota:ipdps14}.
+For random graphs, we show a rigorous scaling with $N$, the number of processors for $N\leq 2^k$. 
+
+Our algorithm partitions the graph $G$ into $N_1$ parts. The computation involves $2^k$
+iterations, and $N_1$ processors together perform one iteration---this allows us to schedule
+$N/N_1$ such computations to occur in parallel. The total compute time exhibits good weak scaling.
+Additionally, our data structures for supporting Galois field operations
+during the iterations support a temporal cache locality, which actually leads to a reduction
+in the compute time as $N_1$ increases. On the other hand, the communication cost increases
+with $N_1$, leading to an optimal value of $N_1$ for the best performance.
+
 
 \noindent
 \textbf{2. Experimental results}. We evaluate our results on a number of real and synthetic networks 
 with up to 250 million edges and subgraph sizes up to $k=18$. The reduced memory footprint
 allows us to scale to paths of size 18, which has not been done before.  Our algorithms for
-both problems show reasonable scaling up to 512 processors. The running time grows linearly
-with the network size and as $2^k$ for the subgraph size $k$.
+both problems show reasonable scaling up to 512 processors, supporting our theoretical analysis. 
+The running time grows linearly with the network size and as $2^k$ for the subgraph size $k$.
 
 \noindent
 \textbf{3. Comparison with prior methods.}
 Our algorithm for finding paths gives over two orders of magnitude improvement in time
 compared to FASCIA, the state of the art method based on color coding \cite{slota:icpp13, slota:ipdps14}.
-There is only one parallel algorithm for network scan statistics, which is based on pruning heuristics,
-and our method gives several order of magnitude improvement over it.
+Our algorithm for scan statistics improves on the Giraph based implementation
+\cite{cadena:bigdata17} by over an order of magnitude, and scales to significantly larger networks.
 
-\noindent
-\textbf{4. Comparison with Giraph.}
-We compare our methods with recent parallel graph programming models, Giraph and Spark.
-Our results show that neither of these models scale well for these problems; further,
-Spark has worse performance than Giraph.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%Many problems in graph mining and social network analysis can be reduced to questions
+%%about different kinds of subgraphs; two important classes of such problems, which 
+%%are the focus of our paper, are:
+%%(1) \emph{Detecting subgraphs}, such as paths and trees, of a given size $k$---these are used
+%%for characterizing different kinds of networks, especially in biological models
+%%\cite{alon2008biomolecular, huffner2008algorithm}.
+%%(2) \emph{Anomaly detection in networked data using graph scan statistics}, which involves finding
+%%connected subgraphs of size $k$, optimizing different kinds of objectives \cite{Speakman-14,leiserson2015pan,
+%%hansen2016finding, \iftoggle{refsfull}{neil2013scan,} chen2014non}.
+%%This problem arises in a number of applications, such as social network analysis, 
+%%epidemiology, finance, and bio-surveillance. We refer to the survey by 
+%%Akoglu et al. \cite{akoglu2014graph} for a detailed discussion on different approaches 
+%%to graph anomaly detection.
+%%
+%%The problems of subgraph detection and scan statistics are NP-hard, in general, making them 
+%%computationally very challenging. Various sequential heuristics have been proposed for
+%%both these problem classes, e.g.,
+%%\cite{alon2008biomolecular, huffner2008algorithm, Speakman-14,leiserson2015pan,
+%%hansen2016finding, \iftoggle{refsfull}{neil2013scan,} chen2014non, cheng:kdd12}. However, these
+%%do not scale to large instances, motivating the need for parallel implementations.
+%%There has been a fair amount of work on parallel algorithms for various kinds of subgraph
+%%problems, e.g., \cite{zhao2012sahad, slota:icpp13, slota:ipdps14, arif:cikm13, 
+%%schmidt2009scalable, zhao2016parallel, aparicio:ispa14, du:mcd09}, but very little for
+%%anomaly detection using graph scan statistics \cite{zhao2016parallel}.
+%%
+%%
+%%Most of these parallel algorithms involve heuristics based on partitioning, pruning, and 
+%%enumeration for speeding up the computations to fairly large graphs---e.g., for 
+%%maximal cliques \cite{schmidt2009scalable, zhao2016parallel, aparicio:ispa14, cheng:kdd12, du:mcd09}.
+%%One of the few rigorous approaches for subgraph counting that has been used for
+%%developing parallel algorithms is based on the ``color coding'' technique
+%%\cite{alon2008biomolecular, alon1995color}, which gives a rigorous \emph{fixed parameter tractable} algorithm\footnote{This means the running time is $O(f(k)n^c)$, where
+%%$n$ is the number of nodes, $c$ is a constant, and $f(\cdot)$ is a function of some other
+%%parameter---in this case, it is the size of the subgraph \cite{downey}.}
+%%for finding and counting subgraphs. Color coding is a dynamic programming algorithm,
+%%and multiple approaches have been developed for parallelizing it 
+%%\cite{zhao2012sahad, slota:icpp13, slota:ipdps14}; the FASCIA algorithm of \cite{slota:icpp13, slota:ipdps14}
+%%which is implemented in MPI is the state-of-the-art, and can handle trees
+%%of size up to 12 in graphs with millions of nodes. 
+%%%%Color coding has also been used to develop a
+%%%%sequential algorithm for graph scan statistics \cite{cadena:sdm17}, but no parallel
+%%%%adaptations exist so far.
+%%A big challenge of the color coding technique is the memory overhead, since
+%%it scales as $2^k$, where $k$ denotes the subgraph size, which limits further
+%%scaling to larger graphs or subgraphs.  
+%%
+%%In this paper, we develop a novel approach for designing highly scalable parallel
+%%algorithms for both the problem classes mentioned above, by adapting
+%%powerful algebraic techniques for
+%%detecting multilinear terms in a multivariate polynomial developed by 
+%%Koutis \cite{koutis:icalp08} and Williams \cite{williams2009finding}.
+%%Our contributions are:
+%%
+%%\noindent
+%%\textbf{1. Efficient algorithms for parallel multilinear detection
+%%and applications to subgraph analysis.}
+%%We develop a distributed MPI based algorithm for detecting 
+%%multilinear terms with $k$ variables of the form $x_{i_1}x_{i_2}\ldots x_{i_k}$ (i.e., a term in
+%%which all variables have exponent 1) in a multivariate polynomial
+%%$P(x_1,\ldots,x_n)$---this is referred to as the $k$-Multilinear Detection (\textsc{$k$-MLD}) problem
+%%\cite{koutis:icalp08, williams2009finding}. The problem of finding paths and trees can
+%%be reduced to the \textsc{$k$-MLD} problem \cite{koutis:icalp08}. We also show that the
+%%network scan statistics problem can also be reduced to the \textsc{$k$-MLD} problem.
+%%Consequently, our parallel multilinear detection algorithm leads to parallel algorithms
+%%for both these problems. Our methods provably
+%%have better space and running time complexity compared to the color coding technique.
+%%The space complexity is $O(kn)$ compared to $O(2^kn)$, whereas the running time complexity is proportional to $O(2^k)$, compared to $O(2^ke^k)$
+%%\cite{zhao2012sahad, slota:icpp13, slota:ipdps14}.
+%%
+%%\noindent
+%%\textbf{2. Experimental results}. We evaluate our results on a number of real and synthetic networks 
+%%with up to 250 million edges and subgraph sizes up to $k=18$. The reduced memory footprint
+%%allows us to scale to paths of size 18, which has not been done before.  Our algorithms for
+%%both problems show reasonable scaling up to 512 processors. The running time grows linearly
+%%with the network size and as $2^k$ for the subgraph size $k$.
+%%
+%%\noindent
+%%\textbf{3. Comparison with prior methods.}
+%%Our algorithm for finding paths gives over two orders of magnitude improvement in time
+%%compared to FASCIA, the state of the art method based on color coding \cite{slota:icpp13, slota:ipdps14}.
+%%There is only one parallel algorithm for network scan statistics, which is based on pruning heuristics,
+%%and our method gives several order of magnitude improvement over it.
+%%
+%%\noindent
+%%\textbf{4. Comparison with Giraph.}
+%%We compare our methods with recent parallel graph programming models, Giraph and Spark.
+%%Our results show that neither of these models scale well for these problems; further,
+%%Spark has worse performance than Giraph.
 
 
 %we study a novel approach for a broad class of subgraph analysis problems
