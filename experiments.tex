@@ -1,14 +1,13 @@
 % !TEX root = ./multilinear.tex
 \section{Experiments}
 \label{sec:experiments}
-We evaluated the performance of the proposed parallel algorithms for parallel speedup and scalability. In particular, our experiments address the following questions:
+The performance study of the proposed parallel algorithms cover the following topics.
 
-%In this regard we varied the graph size, motif size (parameter $k$ in Algorithm~\ref{alg:parallel-kMLD} and Algorithm\textcolor{red}{TODO - ref to parallel multi linear scan}), and parallelism. 
-
-\begin{enumerate}
+\begin{itemize}
 \item 
-How does performance scale with the number of processors for different graphs for the specific problems of finding paths and graph scan statistics? (Section \ref{sec:scaling})
+\textbf{Strong scaling} looks at the total runtime as the number of parallel processors are increased, thereby reducing the computing workload per process.(Section \ref{sec:strong-scaling})
 \item
+\texbf{Weak scaling} investigates the performance variation  while keeping a constant work load per process. The overall
 How does performance varies with parallelism over iterations and graph nodes? (Section~\ref{sec:n1n}
 \item
 How does performance of finding paths compare with the popular FASCIA~\cite{6877274} subgraph counting implementation? (Section~\ref{sec:vsfascia})
@@ -19,7 +18,7 @@ Giraph? (Section \ref{sec:compare-giraph})
 %How do our methods compare with those based on color coding?
 \item
 What are settings where the scaling to larger subgraph size gives new results? (Section \ref{sec:traffic})
-\end{enumerate}
+\end{itemize}
 
 \subsection{Experimental Setup}
 \subsubsection{Hardware}
@@ -142,7 +141,7 @@ Given these two levels of parallelism and a total of $N$ processes, we can split
 
 To illustrate this with an example, consider the case of $k=6$, $N=128$, $N_1=32$, and $bs=8$. The total number of iterations is $2^k = 64$. The number of parallel instances is $128/32 = 4$. Each instances only needs to run $64/4 = 16$ iterations. Since $bs=8$, the $16$ iterations can be completed in just $16/8 = 2$ phases.
 
-A note on $bs$: increasing this value, for example $bs=16$ in the previous case, could have finished the entire program in one compute and communicate phase. This yields to higher parallel efficiency as the overhead of communication to computation is reduced. However, it increases the message size by $bs$ factor. Depending on the number of total processes, MPI may fail to accommodate large message sizes requiring to reduce  $bs$ such that \textcolor{blue}{TODO}. 
+A note on $bs$: increasing this value, for example $bs=16$ in the previous case, could have finished the entire program in one compute and communicate phase. This yields to higher parallel efficiency as the overhead of communication to computation is reduced. However, it increases the message size by $bs$ factor\footnote{Increasing message size for a communication step is not necessarily a bad occurrence. Reducing number of small messages in communication may lead to increased network performance.}. Depending on the number of total processes, MPI may fail to accommodate large message sizes requiring to reduce  $bs$ such that \textcolor{blue}{TODO}. 
 
 With these two levels of parallelism we expect to see a minimal
 
@@ -177,7 +176,7 @@ $\lfloor N / N_1 \rfloor$ iterations in parallel. Figure \ref{fig:time-with-p} s
 % \end{figure*}
 
 \subsection{Strong Scaling and Speedup}
-\label{sec:scaling}
+\label{sec:strong-scaling}
 In Figure \ref{fig:scaling}, we show the speed up and strong scaling achieved by increasing the total parallelism. We obtain higher speed up for $k$-Path, possibly because the communication overhead for this program is lower than for Multilinear Scan. In both cases, we the scaling factor is better for the LiveJournal network.
 
 \begin{figure*}[ht]
