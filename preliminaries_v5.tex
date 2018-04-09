@@ -3,14 +3,14 @@
 \label{sec:prelim}
 
 \subsection{Problem Formulation and Notation}
-We will focus primarily on the following two classes of problems in this paper; our
+We will focus on the following two classes of problems in this paper, but our
 approach can be extended more broadly.
 
 \noindent
 %\textbf{Finding Paths and Trees}
 \subsubsection{Finding Paths and Trees}
-Given a graph $G=(V, E)$ with $n=|V|$, $m=|E|$, and a subgraph $H=(V_H, E_H)$, with $k=|V_H|$, the basic subgraph isomorphism problem involves finding a mapping $f:V_H\rightarrow V$,
-such that $(i, j)\in E_H$ if and only if $(f(i), f(j))\in E$.
+Given a graph $G=(V, E)$ with $n=|V|$, $m=|E|$, and a subgraph $H=(V^H, E^H)$, with $k=|V^H|$, find a mapping $f:V^H\rightarrow V$,
+such that $(i, j)\in E_H$ \emph{only if} $(f(i), f(j))\in E$. Such a mapping is referred to as a \emph{non-induced embedding} of $H$ in $G$.
 
 \begin{problem} ($k$-Tree)
 \label{prob:trees}
@@ -19,15 +19,16 @@ denoted by $H=(V^H, E^H)$ with $|V^H|=k$, the objective is to determine if there
 an embedding of $H$ in $G$.
 \end{problem}
 
+We will consider the following approximate version of Problem \ref{prob:trees}: determine if a non-induced embedding exists with probability at least $1-\epsilon$, where $\epsilon\in(0, 1)$ is a parameter.
 Other common variants of this problem are: (1) counting all embeddings, and (2) finding a maximum
-weight embedding in a weighted version of the graph; our approach can be extended to all
+weight embedding in a weighted version of the graph; our approach can be extended to
 these variants.
 
 
 \noindent
 %\textbf{Anomaly Detection Using Graph Scan Statistics}
 \subsubsection{Anomaly Detection Using Graph Scan Statistics}
-We use the notation of \cite{cadena:sdm17} here. We assume each node $v\in V$ has two associated values,
+We use the notation of \cite{cadena:sdm17}. We assume each node $v\in V$ has two values,
 which vary with time (we will not show the time to avoid complicating the notation):
 (1) a \emph{baseline count}, $b(v)$, which indicates the count that we
 expect to see at the node $v$---e.g., the number of people in a county corresponding to node $v$---and
@@ -35,7 +36,7 @@ expect to see at the node $v$---e.g., the number of people in a county correspon
 of interest are seen at the node---e.g., the number of cases of a disease in a county.
 
 Graph scan statistics are among the most commonly used methods for detecting anomalies or ``hotspots" in
-networked data \cite{Speakman-14,leiserson2015pan, hansen2016finding, neil2013scan, chen2014non}.
+network data \cite{Speakman-14,leiserson2015pan, hansen2016finding, neil2013scan, chen2014non}.
 Informally, this approach formalizes anomaly detection as a hypothesis testing problem.
 Under the null hypothesis $H_0$, it is \emph{business as usual}, and the event counts for all nodes are generated proportionally to their baseline counts. Under the alternative hypothesis $H_1(S)$, counts of a majority of
 the vertices are generated (again) with rate proportional to the baseline counts, but there exists a small connected subset
@@ -53,31 +54,37 @@ The graph anomaly detection problem can be posed as the following constrained op
 Given a graph $G=(V, E)$, a scan statistic $F(\cdot)$, the associated counts for vertices---$\mathbf{w}$ and $\mathbf{b}$---and a parameter $k$, find a connected subset $S\subseteq V$ that maximizes $F(S) = F(W(S), B(S), \theta)$ with $B(S) \leq k$.
 \end{problem}
 
-\noindent
-\textbf{Our approach.} Problems \ref{prob:trees} and \ref{prob:macs} are seemingly very different,
-and they are computationally very challenging. Problem \ref{prob:macs}
-has been shown to be NP-hard in general \cite{cadena:sdm17}. Finding paths of length at least $k$
-is NP-hard when $k$ is large. We will focus on the setting where $k$ is small, e.g., $O(\log{n})$.
-The only prior approach that has given parallel algorithms with rigorous bounds for these two problems involves the use of the technique called \emph{color coding} (\cite{alon2008biomolecular, huffner2008algorithm,
-alon1995color} for Problem \ref{prob:trees} and \cite{cadena:sdm17} for Problem \ref{prob:macs}).
-However, color coding has a significant memory overhead, and we propose a new approach
-based on an algebraic technique that involves detecting multilinear terms in multivariate polynomials.
-We first discuss the basic theoretical concepts needed for this approach, and then the seminal
-algorithm of \cite{DBLP:journals/talg/KoutisW16, williams2009finding} for multilinear detection.
-Our approach involves two steps:
-\begin{itemize}
-\item
-We develop an MPI-based parallel algorithm for multilinear detection of any multivariate
-polynomial.%, represented as a directed acyclic graph (DAG) (Section \ref{sec:proposed}).
-\item
-We show that both our problems can be reduced to multilinear detection for suitably defined
-polynomials, and thus can be solved in parallel. %The parallel algorithm in Section \ref{sec:proposed} is described for any multivariate polynomial, represented as a DAG, and serves as an abstraction.% for describing both algorithms. 
-We discuss how the specific
-polynomials are constructed for our problems.
-\end{itemize}
+Problem \ref{prob:macs} is NP-hard \cite{cadena:sdm17}. We consider the following approximate version: find a subset $S$ such that $B(S)\leq k$ and $F(S)$ equals the optimum, with probability at least $1-\epsilon$, where $\epsilon\in(0, 1)$ is a parameter. Other variants of the problem include finding the top--10 subgraphs with highest $F(S)$, and finding all subgraphs with $F(S)$ above some threshold.
+
+% \noindent
+% \textbf{Our approach.} Problems \ref{prob:trees} and \ref{prob:macs} are seemingly very different,
+% and they are computationally very challenging. Problem \ref{prob:macs}
+% has been shown to be NP-hard in general \cite{cadena:sdm17}. Finding paths of length at least $k$
+% is NP-hard when $k$ is large. We will focus on the setting where $k$ is small, e.g., $O(\log{n})$.
+% The only prior approach that has given parallel algorithms with rigorous bounds for these two problems involves the use of the technique called \emph{color coding} (\cite{alon2008biomolecular, huffner2008algorithm,
+% alon1995color} for Problem \ref{prob:trees} and \cite{cadena:sdm17} for Problem \ref{prob:macs}).
+% However, color coding has a significant memory overhead, and we propose a new approach
+% based on an algebraic technique that involves detecting multilinear terms in multivariate polynomials.
+% We first discuss the basic theoretical concepts needed for this approach, and then the seminal
+% algorithm of \cite{DBLP:journals/talg/KoutisW16, williams2009finding} for multilinear detection.
+% Our approach involves two steps:
+% \begin{itemize}
+% \item
+% We develop an MPI-based parallel algorithm for multilinear detection of any multivariate
+% polynomial.%, represented as a directed acyclic graph (DAG) (Section \ref{sec:proposed}).
+% \item
+% We show that both our problems can be reduced to multilinear detection for suitably defined
+% polynomials, and thus can be solved in parallel. %The parallel algorithm in Section \ref{sec:proposed} is described for any multivariate polynomial, represented as a DAG, and serves as an abstraction.% for describing both algorithms. 
+% We discuss how the specific
+% polynomials are constructed for our problems.
+% \end{itemize}
 
 
-\section{$k$-Multilinear Detection and Sequential Algorithms}
+\section{$k$-Multilinear Detection and Sequential Algorithm}
+\label{sec:kMD}
+We describe the sequential multilinear detection algorithm. We start with some introduction to group algebras and Galois fields and end with the sequential algorithm for finding $k$-paths.
+Because of the limited space, we only describe the main ideas here and refer to \cite{koutis:icalp08, williams2009finding} for more details. 
+
 Let $X = x_1, \ldots,x_n$ be a set of variables, and let $P(X)$ be a polynomial, which is a sum 
 of monomials on $X$. We will denote $P(X)=\sum_S \Pi_{i\in S} x_i$ as a monomial, where
 the sum is over multisets $S$.  An example of a polynomial on six variables is 
@@ -91,7 +98,7 @@ is to decide whether or not $P(X)$ has a multilinear monomial of degree exactly 
 
 We note that the polynomial $P(X)$ may have an arbitrary number of terms---i.e., exponential on the size of $n$---therefore, the problem is not as simple as writing the polynomial explicitely and checking each term. Rather, we assume that $P(X)$ is given succintly in a recursive form, and the ``yes"/``no" decision has to be made without unrolling this recursion.
 %Figure \ref{fig:dag} illustrates a circuit representation of the polynomial $P(\cdot)$ above.
-In general, we also have a weight $w_S$ for each multinomial $\Pi_{i\in S} x_i$. Our focus in this paper will be the following problem.
+In general, we also have a weight $w_S$ for each multinomial $\Pi_{i\in S} x_i$. Formally, we have the following problem.
 
 %\begin{figure}[h]
 %\includegraphics[width=0.5\textwidth]{img/dag3_fixed.pdf}
@@ -300,8 +307,8 @@ $$}
 
 %The main idea in the algorithm of \cite{koutis:icalp08} is that, if we evaluate a polynomial over the ``right" algebra, monomials that have square terms evaluate to 0, and the remaining terms, which are multilinear, do not cancel out, with some probability. Then, a polynomial $P(X)$ has a $k$ multilinear term if $P(X) \neq 0$. 
 
-We can show that, if we choose a $v_i \in \mathbb{Z}_2^k$ uniformly at random and set $x_i = v_0 + v_i$, then a multilinear monomial does \textbf{not} evaluate to $\bar 0$ with high probability, whereas a monomial with squares is always $\bar 0$ (as in the box above).
-The algorithm was later refined in \cite{williams2009finding} by evaluating the polynomial over the group algebra $GF(2^{3 + \log_2k})[\mathbb{Z}_2^k]$, where $GF(p)$ is the finite field of order $p$ \cite{mullen2007finite}, and this is the version that we implement. But, to simplify the discussion below, we assume that we are working on the group algebra $\mathbb{Z}_2[\mathbb{Z}_2^k]$. 
+We can show that, if we choose a $v_i \in \mathbb{Z}_2^k$ uniformly at random and set $x_i = v_0 + v_i$, then a multilinear monomial does \textbf{not} evaluate to $\bar 0$ with some probability, whereas a monomial with squares is always $\bar 0$ (as in the box above).
+The algorithm was later refined in \cite{williams2009finding} by evaluating the polynomial over the group algebra $GF(2^{3 + \log_2k})[\mathbb{Z}_2^k]$, where $GF(p)$ is the Galois field of order $p$ \cite{mullen2007finite}, and this is the version that we implement. But, to simplify the discussion below, we assume that we are working on the group algebra $\mathbb{Z}_2[\mathbb{Z}_2^k]$. 
 
 A polynomial $P(x_1,\ldots,x_n)$ with variables from $\mathbb{Z}_2[\mathbb{Z}_2^k]$ can be evaluated in time $O(2^k poly(n))$ and space $O(2^kpoly(n))$, resulting in Theorem \ref{theorem:kmld}.
 
@@ -352,7 +359,7 @@ The algorithm has time complexity $O(2^k poly(n))$ and space complexity $O(2^k p
 
 \subsection{Implementation Using a Matrix Representation of $\mathbb{Z}_2[\mathbb{Z}_2^k]$}
 Theorem \ref{theorem:kmld} performs operations in the group algebra $\mathbb{Z}_2[\mathbb{Z}_2^k]$,
-which takes $O(2^k poly(n))$ space. Koutis \cite{koutis:icalp08} showed that, in fact, the space complexity can be reduced to $O(k poly(n))$ by using the idea of matrix representations.
+which takes $O(2^k poly(n))$ space. Koutis \cite{koutis:icalp08} showed that the space complexity can be reduced to $O(k poly(n))$ by using the idea of matrix representations.
 %We use the notation from \cite{koutis:icalp08} and describe it here for completeness.
 %Let $\rho:\mathbb{Z}_2^k\rightarrow M^{2^k\times 2^k}$ be a matrix representation of
 %$\mathbb{Z}_2^k$ satisfying $\rho(uv)=\rho(u)\rho(v)$ for all $u, v\in \mathbb{Z}_2^k$.
@@ -381,7 +388,7 @@ which takes $O(2^k poly(n))$ space. Koutis \cite{koutis:icalp08} showed that, in
 The main idea is that every element of the group algebra can be represented as a $2^{k}\times2^k$ matrix, and the polynomial $P(X)$ evaluates to $\bar 0$ if and only if the trace of its corresponding matrix representation is $0 \mod 2^{k+1}$. We can compute the trace by evaluating the polynomial over the group of all integers $2^k$ times, once for each element of the diagonal. For each variable $x_i = v_0 + v_i$, the $t$th diagonal element in the corresponding matrix representation is $1+(-1)^{v^T t_{bin}}$, where $t_{\text{bin}}$ is the $k$-bit binary representation of $t$.
 
 \subsection{Application to $k$-Path}
-As an example of the multilinear detection technique, we now describe a sequential algorithm for the $k$-Path problem. We are given a graph $G(V,E)$ and a parameter $k$, and the algorithm decides whether or not the graph has a path of length $k$. First, we reduce $k$-Path to a $k$-MLD instance (this follows from \cite{koutis:icalp08, williams2009finding}). Given a graph $G(V, E)$, let $x_i$ denote a variable associated with each node $i\in V$.
+As an example of the multilinear detection technique, we now describe a sequential algorithm for the $k$-Path problem, which is a special case of Problem \ref{prob:trees}. We are given a graph $G(V,E)$ and a parameter $k$, and the algorithm decides whether or not the graph has a path of length $k$. First, we reduce $k$-Path to a $k$-MLD instance (this follows from \cite{koutis:icalp08, williams2009finding}). Given a graph $G(V, E)$, let $x_i$ denote a variable associated with each node $i\in V$.
 We define poynomials $P(i, j)$ for all $i\in V$, $j\leq k$ in the following manner.
 
 \begin{itemize}
@@ -396,8 +403,9 @@ Define the polynomial $P(x_1,\ldots,x_n) = \sum_i P(i, k)$
 
 Intuitively, a polynomial $P(i, j)$ encodes all the possible walks of length $j$ ending at node $i$. Each monomial in $P(i,j)$ corresponds to one walk. It can be verified that the graph $G$ has a path of length $k$ if and only if the polynomial $P(x_1,\ldots,x_n)$ has a multilinear term---i.e., a walk with no repeated vertices. 
 
-Algorithm \ref{alg:maxwt} presents the full procedure. With the matrix representation, the polynomial for $k$-Path is evaluated over $2^k$ iterations (lines 6---12). In each iteration, we first initialize $P(i, 1)$, which represents a monomial of degree 1 corresponding to variable $x_i$
-(lines 7--8). From there, we compute recursively $P(i,j)$, a polynomial where each term contains $x_i$ and has degree $j$ (lines 9--11). The computation of$P(i,j)$ for a node $i$ uses data from the immediate neighbors of $i$ and all the polynomials of degree $j-1$, which have already been computed at this point. The two applications that we consider in Section \ref{sec:applications} have this structure.
+Algorithm \ref{alg:maxwt} presents the full procedure. With the matrix representation, the polynomial for $k$-Path is evaluated over $2^k$ iterations (lines 6---12). In each iteration, we first initialize $P(i, 1)$
+%which represents a monomial of degree 1 corresponding to variable $x_i$
+(lines 7--8). From there, we compute recursively $P(i,j)$, a polynomial where each term contains $x_i$ and has degree $j$ (lines 9--11). The computation of $P(i,j)$ for a node $i$ uses data from the immediate neighbors of $i$ and all the polynomials of degree $j-1$, which have already been computed at this point. The two applications that we consider in Section \ref{sec:applications} have this structure.
 
 \begin{algorithm}{}
 \small
@@ -410,10 +418,10 @@ Algorithm \ref{alg:maxwt} presents the full procedure. With the matrix represent
 \STATE For each node $i$, pick a random vector $v_i \in \mathbb{Z}_{2}^k$
 \STATE $P = 0$
 \STATE \textbf{for} $t = 0$ to $2^{k-1}$
-\STATE \quad \textbf{Base case}
+\STATE \quad $\blacktriangleright$ \textbf{Base case}
 \STATE \quad \textbf{for} $i \in V$ \textbf{do}
 \STATE \quad \quad $P(i, 1) = 1 + (-1)^{v_i^T \cdot t_{\text{bin}}}$
-\STATE \quad \textbf{Inductive step}
+\STATE \quad $\blacktriangleright$ \textbf{Inductive step}
 \STATE \quad \textbf{for} $i \in V$, $j = 2$ to $k$ \textbf{do}
 \STATE \quad \quad
 $P(i,j) = \sum_{u \in \nbr(i)} P(i, 1)P(u, j-1)$
@@ -422,3 +430,4 @@ $P(i,j) = \sum_{u \in \nbr(i)} P(i, 1)P(u, j-1)$
 \STATE \textbf{return} ``Yes" if $P \neq 0$, else ``No"
 \end{algorithmic}
 \end{algorithm}
+

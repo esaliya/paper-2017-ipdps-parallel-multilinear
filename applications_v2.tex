@@ -1,57 +1,89 @@
-\section{Parallel algorithms for $k$-Tree and network scan statistics}
+\section{$k$-Tree and graph scan statistics}
 \label{sec:applications}
-
-We now describe parallel algorithms for our two problems by reducing them to
-instances of the $k$-MLD problem. We discuss here how the corresponding polynomials
-and DAGs are constructed implicitly and evaluated in the subroutine \parcircuit{};
-the main Algorithm \parmaxwt{} remains unchanged. We recall the notation from Section \ref{sec:prelim}.
+We now describe how \ouralgo{} for the $k$-path problem can be extended to 
+parallel algorithms for finding trees and optimizing scan statistics. We discuss here how the corresponding polynomials are constructed recursively and evaluated in the subroutines \parcircuittree{} and \parcircuitscan{};
+the main Algorithm \ouralgo{} remains unchanged.
 
 \subsection{$k$-Tree}
 \label{sec:apps-trees}
-For brevity, we describe the algorithm for the case where $H$ is a path; the
-case of $H$ being a tree has a similar structure. We first describe how this is
-reduced to a $k$-MLD instance (this follows from \cite{koutis:icalp08, williams2009finding}). Given a graph $G(V, E)$, let $x_v$ denote a variable associated with each node $v\in V$.
-We define poynomials $P_v(i)$ for all $v\in V$, $i\leq k$ in the following manner.
-
+\begin{figure}[h]
+\vspace{-0.2in}
+\centering
+\includegraphics[width=0.37\textwidth]{img/trees.pdf}
+\caption{
+\small
+Tree $H$ with $\myroot(H)=1$ is decomposed into trees $H_1$ and $H_2$ by
+removing edge $(1, 2)$: $\myroot(H_1)=1$ and $\myroot(H_2)=2$.
+%\vspace{-0.2in}
+}
+\label{fig:trees}
+\end{figure}
+We describe how an instance of $k$-Tree with graph $G=(V,E)$ and tree $H=(V^H, E^H)$
+is reduced to a $k$-MLD instance. We consider the tree $H$ to be rooted,
+and let $\myroot(H)$ be the root node, selected arbitrarily. We consider a hierarchical
+structure among subtrees of $H$ in the following manner: consider any node $u\in\nbr(\myroot(H))$.
+Let $H_1$ and $H_2$ denote the subtrees or \emph{children} obtained upon deleting the edge $(u, \myroot(H))$,
+with $\myroot(H)\in H_1$ and $u\in H_2$. We set $\myroot(H_1)=\myroot(H)$ and $\myroot(H_2)=u$.
+This process is illustrated in Figure \ref{fig:trees}.
+The subtrees $H_1$ and $H_2$ are further partitioned in a recursive manner until
+all trees have a single node.
+We define the polynomials $P(i, H')$, which will correspond to all layouts (not necessarily
+isomorphisms) of $H'$ with $\myroot(H')=i$ for all nodes $i \in V$, as follows:
 \begin{itemize}
 \item
-$P_v(1) = x_v$ for all $v\in V$
+If $H'$ consists of a single node, $P(i, H') = x_i$
 \item
-For $i>1$,
-$P_v(i) = \sum_{i'<i} \sum_{u\in\nbr(v)} P_u(i')P_v(i-i')$
+Else, 
+$P(i, H') = \sum_{u\in\nbr(i)} P(i, H'_1)P(u, H'_2)$, where
+$H'_1$ and $H'_2$ are the children of $H'$.
 \item
-Define the polynomial $P(x_1,\ldots,x_n) = \sum_v P_v(k)$
+Finally, we have
+$P(x_1,\ldots, x_n)= \sum_{i \in V} P(i, H)$
 \end{itemize}
 
-It can be verified that the graph $G$ has a path of length $k$ if and only if the
-polynomial $P(x_1,\ldots,x_n)$ has a multilinear term. Algorithm \parcircuit\textsc{Path}
-runs on the graph $G(V, E)$ directly (instead of a DAG), and this is partitioned
-into subsets $V_1,\ldots, V_{N_1}$. Let $V_p$ denote the partition assigned to processor $p$.
-The algorithm maintains variables $\val(i, j, q)$ for each node $i$, each $j\leq k$, and
-iteration $q$ within the $t$th phase.
+By using ideas from \cite{alon2008biomolecular}, it can be verified that the tree $H$ is a subgraph of $G$ if and only if the
+polynomial $P(x_1,\ldots,x_n)$ has a multilinear term. Algorithm \parcircuittree{}
+evaluates this polynomial analogous to Algorithm \ref{alg:parEvaluatepath} from Section \ref{sec:proposed}. The performance of \ouralgo{} using \parcircuittree{} is summarized below.
+
+\begin{lemma}
+\label{lemma:parmaxwt-tree}
+For any $\epsilon\in(0, 1)$,
+Algorithm \ouralgo{}, using \parcircuittree{}, solves the \textsc{$k$-Tree} problem for an
+instance $(G, H)$ with probability at least $1-\epsilon$. The total time for
+computation and communication are $O\left(c_1\frac{2^kN_1}{N}|\mathcal{T}| \maxload{}\log{1/\epsilon}\right)$ 
+and $O\left(c_2\frac{2^kN_1}{N N_2}|\mathcal{T}| \maxdeg{}\log{1/\epsilon}\right)$, respectively.
+\end{lemma}
 
 \begin{algorithm}{}
 \small
-\caption{\parcircuit\textsc{Path}{$(G(V, E), k, \mathbf{v}, t, N_2, N_1, \mathcal{P})$}}
+\caption{\parcircuittree{$(G(V, E), H(V^H, E^H), \mathbf{v}, t, N_2, N_1, \mathcal{P})$}}
 \label{alg:parEvaluatepath} 
 \begin{algorithmic}[1]
-\STATE \textbf{Input:} Graph $G(V, E)$, parameter $k$, node levels $\mathcal{L}$, 
+\STATE \textbf{Input:} Graph $G(V, E)$, tree $H(V^H, E^H)$ with $k$ vertices, 
 random assignment $\mathbf{v}$, phase number $t$, number of iterations within phase $N_2$,
 number of partitions $N_1$, and partitioning $\mathcal{P}$
+\STATE \textbf{Output:} The value of the polynomial corresponding to $k$-tree in the iterations within a phase
 \STATE
-
-\STATE \textbf{for} each processor $p$ in parallel do
-\STATE \quad \textbf{for} $s=1$ to $k$ \textbf{do}
-\STATE \quad \quad \textbf{for} each node $i\in V_p$ \textbf{do}
-\STATE \quad \quad \quad \textbf{if} $s=1$ $ \val(i, 1, q) = 1 + (-1)^{v_i^T \cdot q_{\text{bin}}}$
-\STATE \quad \quad \quad \textbf{if} $s>1$ compute $\val(i, s, q) =$
-\STATE \quad \quad \quad \quad \quad $\sum_{s'<s} \sum_{i'\in\nbr(i)} \val(i', s', q)\val(i, s-s', q)$
-\STATE \quad \quad \quad \textbf{Send result to neighbors in other processors}
-\STATE \quad \quad \quad \textbf{for} $i' \in \nbr(i) \setminus V^{p}$ \textbf{do}
-\STATE \quad \quad \quad \quad \textbf{Send} $\langle i, \val(i, s, q)\rangle$
-\STATE \textbf{return} $\sum_q \val($root$(G), q)$
+\STATE Let $\mathcal{T}$ be a collection of subtrees of $H$ sorted by size
+\STATE \textbf{for} each processor $s$\textbf{do in parallel}
+\STATE \quad \textbf{for} each subtree $j \in \mathcal{T}$ \textbf{do}
+\STATE \quad \quad \textbf{for} node $i\in G^s$ and iteration $q\in [tN_2,(t+1)N_2 - 1]$ \textbf{do}
+\STATE \quad \quad \quad \textbf{if} $|j|=1$ \textbf{then}
+\STATE \quad \quad \quad \quad $P(i, q, j) = 1 + (-1)^{v_i^T \cdot q_{\text{bin}}}$
+\STATE \quad \quad \quad \textbf{else}
+\STATE \quad \quad \quad \quad set $P(i,q, j) = 0$
+\STATE \quad \quad \quad \quad let $j'$ and $j''$ be the children of subtree $j$
+\STATE \quad \quad \quad \quad \quad \textbf{for} each incoming message $\langle u, P(u, q, j'')\rangle$ \textbf{do}
+\STATE \quad \quad \quad \quad \quad \quad $P(i, q, j)= P(i, q, j) + P(i, q, j')  P(u, q, j'')$
+\STATE \quad \quad \quad \textbf{Send result to neighbors}
+\STATE \quad \quad \quad  \textbf{for} $u \in \nbr(i)\setminus G^s$ \textbf{do}
+\STATE \quad \quad \quad \quad \textbf{Send} $\langle i, P(i, q, j)\rangle$
+\STATE \textsc{MpiBarrier}
+\STATE \textbf{return} $\sum_q \sum_i P(i, q, H)$
 \end{algorithmic}
 \end{algorithm}
+
+More generally, we consider a weighted version of the problem, where the goal is to find an embedding of the maximum weight. We also note that the algorithm can be generalized to find motifs of bounded treewidth, similar to algorithms based on the color coding technique. \cite{alon1995color}.
 
 \iffalse
 \comment{move the rest of this to the supplementary}
@@ -91,26 +123,37 @@ Finally, we have
 $P(x_1,\ldots, x_n)= \sum_v P_v(H)$
 \end{itemize}
 
-More generally, we consider a weighted version of the problem, where the goal is to
-find an embedding of the maximum weight. 
+More generally, we consider a weighted version of the problem, where the goal is to find an embedding of the maximum weight. We also note that the algorithm can be generalized to find motifs of bounded treewidth similar to algorithms based on the color coding technique. \cite{alon1995color}.
 \fi 
 
 \subsection{Scan Statistics}
 \label{sec:apps-scanstat}
 %For concreteness, we now show how to implement a sequential algorithm for Problem \ref{prob:macs} based on the Multilinear Detection technique. We start by describing how to recursively construct and evaluate a circuit for this problem.
-Let $W(V) = \sum_v{w(v)}$ be the total weight of the nodes in $G$. For each node $v$, we define a variable $x_v$, and we construct a polynomial over the set of variables $\{x_v: v \in V\}$. Every term---i.e., monomial---in this polynomial will represent a connected subgraph of size at most $k$ and weight at most $W(V)$.
-For $i \leq K$ and $j \leq W(V)$, let $P_v(i,j)$ be the polynomial corresponding to a subgraph (1) containing node $v$, (2) of size $i$, and (3) total weight
-$j$. The following recurrence relations describe how the polynomials $P_v(i, j)$ are computed:
+Let $W(V) = \sum_{i\in V}{w(i)}$ be the total weight of the nodes in $G$. For each node $i$, we define a variable $x_i$, and we construct a polynomial over the set of variables $\{x_i: i \in V\}$. Every term---i.e., monomial---in this polynomial will represent a connected subgraph of size at most $k$ and weight at most $W(V)$.
+For $j \leq k$ and $z \leq W(V)$, let $P(i,j,z)$ be the polynomial corresponding to a subgraph (1) containing node $i$, (2) of size $j$, and (3) total weight $z$. The following recurrence relations describe how the polynomials $P(i, j, z)$ are computed:
 \begin{itemize}
 \item
-$P_v(1, j) = x_v$ for all $v \in V$, $j = w(v)$
+$P(i, 1, z) = x_i$ for all $i \in V$, $z = w(v)$
 \item
-For $v \in V$, $i = 2$ to $k$, $j = 0$ to $r$, 
-$P_v(i,j) = \sum_{u \in \nbr(v)} \sum_{i' = 1}^{i-1}\sum_{j'=0}^j (P_v(i', j') \cdot P_u(i-i', j - j'))$
+For $i \in V$, $j = 2$ to $k$, $z = 0$ to $W(V)$, 
+$P(i,j, z) = \sum_{u \in \nbr(i)} \sum_{j' = 1}^{j-1}\sum_{z'=0}^z (P(i, j', z') \cdot P(u, j - j', z-z'))$
 \item
-$P(i,j) = \sum_v P_v(i,j)$ for $i \in K$, $j \in R$
+$P(j, z) = \sum_i P(i,j, z)$ for $j \leq k$, $z \leq W(V)$
 \end{itemize}
-Algorithm \ref{alg:parEvaluateScanStat} maintains variables $\val(i, j, \ell, q)$ for every node $i$, $j\leq k$, $\ell \leq W(V)$, and iteration $q$ within phase $t$. It can be verified that the input graph $G$ has a connected subgraph $S$ of weight $W(S)$ if and only if the corresponding polynomial $P(i, j)$ has a multilinear term.
+Algorithm \ref{alg:parEvaluateScanStat} maintains variables $P(i, q, j, z)$ for every node $i$, $j\leq k$, $z \leq W(V)$, and iteration $q$ within phase $t$. It can be verified \cite{cadena:bigdata17} that the input graph $G$ has a connected subgraph $S$ of size $j$ and weight $z$ if and only if the corresponding polynomial $P(j, z)$ has a multilinear term.
+We have the following lemma.
+%The performance of \ouralgo{}, using \parcircuittree{} is summarized below.
+
+\begin{lemma}
+\label{lemma:parmaxwt-scan}
+For any $\epsilon\in(0, 1)$,
+Algorithm \ouralgo{}, using \parcircuitscan{}, solves the \textsc{Scan Statistics} problem for an
+instance $(G, k, \mathbf{w})$, with probability at least $1-\epsilon$. The total time for
+computation and communication are $O\left(c_1\frac{2^kN_1}{N}W(V)^2k^2 \maxload{}\log{1/\epsilon}\right)$ 
+and $O\left(c_2\frac{2^kN_1}{N N_2}W(V)^2k^2 \maxdeg{}\log{1/\epsilon}\right)$, respectively.
+\end{lemma}
+
+We note that the performance for scan statistics can be improved significantly by rounding the weights, using a standard technique as in the Knapsack problem \cite{cadena:bigdata17}.
 
 %\noindent
 %\subsubsection{High level idea of \textsc{MLD-ScanStat} (Algorithm \ref{alg:mld-scanstat})}
@@ -213,23 +256,26 @@ Algorithm \ref{alg:parEvaluateScanStat} maintains variables $\val(i, j, \ell, q)
 
 \begin{algorithm}{}
 \small
-\caption{\parcircuit\textsc{ScanStat}{$(G(V, E), k, \mathbf{v}, t, N_2, N_1, \mathcal{P})$}}
+\caption{\parcircuitscan{$(G(V, E), k, \textbf{w}, \mathbf{v}, t, N_2, N_1, \mathcal{P})$}}
 \label{alg:parEvaluateScanStat} 
 \begin{algorithmic}[1]
-\STATE \textbf{Input:} Graph $G(V, E)$, parameter $k$, node levels $\mathcal{L}$, 
+\STATE \textbf{Input:} Graph $G(V, E)$, parameter $k$, node weights $\mathbf{w}$, 
 random assignment $\mathbf{v}$, phase number $t$, number of iterations within phase $N_2$,
 number of partitions $N_1$, and partitioning $\mathcal{P}$
+\STATE \textbf{Output:} The value of the polynomial corresponding to the scan statistics in the iterations within a phase
 \STATE
-\STATE \textbf{for} each processor $p$ in parallel do
-\STATE $\val(i, s, \ell, q) = 0$ for $i\in V, s \leq k, \ell \leq W(V), q$
-\STATE \quad \textbf{for} $s=1$ to $k$ \textbf{do}
-\STATE \quad \quad \textbf{for} each node $i\in V_p$ \textbf{do}
-\STATE \quad \quad \quad \textbf{if} $s=1$ $ \val(i, 1, w(v), q) = 1 + (-1)^{v_i^T \cdot q_{\text{bin}}}$
-\STATE \quad \quad \quad \textbf{if} $s>1$ compute $\val(i, s, \ell, q) =$
-\STATE \quad \quad \quad \quad \quad $\sum_{\ell'=0}^\ell \sum_{s'<s} \sum_{i'\in\nbr(i)} \val(i', s', \ell', q)\val(i, s-s', \ell - \ell', q)$
-\STATE \quad \quad \quad \textbf{Send result to neighbors in other processors}
-\STATE \quad \quad \quad \textbf{for} $i' \in \nbr(i) \setminus V^{p}$ \textbf{do}
-\STATE \quad \quad \quad \quad \textbf{Send} $\langle i, \val(i, s, \ell, q)\rangle$
-\STATE \textbf{return} $\sum_q \val($root$(G), q)$
+\STATE \textbf{for} each processor $s$ \textbf{do in parallel}
+\STATE \quad \textbf{for} node $i \in G^s$ and iteration $q \in [tN_2,(t+1)N_2-1]$ \textbf{do}
+\STATE \qquad $ P(i, q, 1, w(v)) = 1 + (-1)^{v_i^T \cdot q_{\text{bin}}}$
+\STATE \quad \textbf{for} $j=2$ to $k$ and $z=0$ to $W(V)$ \textbf{do}
+\STATE \qquad \textbf{for} node $i \in G^s$ \textbf{do}
+\STATE \qquad \quad \textbf{for} all $q$ set $P(i,q, j, z) = 0$
+\STATE \qquad \quad \textbf{for} each incoming message $\langle u, P(u, q, j-j', z-z')\rangle$ \textbf{do}
+\STATE \qquad \qquad $P(i, q, j, z)= P(i, q, j, z) + P(i, q, j', z')  P(u, q, j-j', z-z')$
+\STATE \qquad \quad  \textbf{Send result to neighbors}
+\STATE \qquad \quad \textbf{for} $u \in \nbr(i)\setminus G^s$ \textbf{do}
+\STATE \qquad \qquad \textbf{Send} $\langle i, P(i, q, j, z)\rangle$
+\STATE \textsc{MpiBarrier}
+\STATE \textbf{return} $\sum_q \sum_i P(i, q, k, z)$ for all $z \leq W(V)$
 \end{algorithmic}
 \end{algorithm}

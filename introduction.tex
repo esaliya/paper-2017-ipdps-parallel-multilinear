@@ -2,45 +2,44 @@
 \section{Introduction}
 
 Many problems in graph mining and social network analysis can be reduced to questions
-about different kinds of subgraphs; two important classes of such problems, which 
+about different kinds of subgraphs. Two important classes of such problems, which 
 are the focus of our paper, are:
 (1) \emph{Detecting and counting subgraphs}, such as paths and trees, of a given size $k$---these are used
 for characterizing different kinds of networks, especially in biological models
 \cite{alon2008biomolecular, huffner2008algorithm}.
-(2) \emph{Anomaly detection in networked data using graph scan statistics}, which involves finding
-connected subgraphs of size $k$, optimizing different kinds of objectives \cite{Speakman-14,leiserson2015pan,
+(2) \emph{Anomaly detection in network data using graph scan statistics}, which involves finding
+connected subgraphs of size $k$, optimizing different kinds of anomaly score functions \cite{Speakman-14,leiserson2015pan,
 hansen2016finding, \iftoggle{refsfull}{neil2013scan,} chen2014non}---this
 arises in a number of applications, such as social network analysis, 
-epidemiology, finance, and bio-surveillance (see \cite{akoglu2014graph} for a survey).
+epidemiology, finance, and bio-surveillance \cite{akoglu2014graph}.
 
-These problems are computationally very challenging. For instance, exact detection of
+Both problems are computationally very challenging. For instance, exact detection of
 paths is NP-hard and the corresponding counting problem is \#P-hard. Development
-of parallel algorithms for these problems has been an active area of research.
-Many parallel algorithms exist for counting local subgraphs, such as triangles, 
-e.g., \cite{arif:cikm13, schmidt2009scalable, aparicio:ispa14, du:mcd09}. 
+of parallel algorithms for these problems is an active area of research, and
+many parallel algorithms exist for counting simple local subgraphs, such as triangles \cite{arif:cikm13, schmidt2009scalable, aparicio:ispa14, du:mcd09}. 
 Finding trees is much harder, and a number of heuristics have been developed. One
 of the few techniques that gives rigorous approximation guarantees is
 \emph{color coding} \cite{alon2008biomolecular, alon1995color, huffner2008algorithm}.
 Parallel adaptations have been developed using MapReduce \cite{zhao2012sahad} and
-MPI \cite{slota:icpp13, slota:ipdps14}. The MPI based 
+MPI \cite{slota:icpp13, slota:ipdps14}. The MPI-based 
 FASCIA algorithm \cite{slota:icpp13, slota:ipdps14} is the state-of-the-art in terms of 
-counting trees in massive networks---it is able to scale to trees with up to 12 vertices,
-and billion edges. However, it seems very hard to scale the color coding
-method to larger subgraphs, even on smaller networks. The main reason is that the
+counting trees in massive networks, scaling to finding trees with up to 12 vertices in networks with
+one billion edges. However, it seems very challenging to scale the color coding
+method to larger subgraphs, even on small networks. The main reason is that the
 time and space complexity of the color coding technique 
 both scale as $2^k$, where $k$ denotes the subgraph size.
 In this paper, we take the first steps towards beating this bound,
 which has remained a significant open problem since \cite{slota:ipdps14}.
-We approach involves parallelization of a powerful algebraic technique for
+Our approach involves parallelization of a powerful algebraic technique for
 detecting multilinear terms in a multivariate polynomial, developed by
 Koutis \cite{koutis:icalp08} and Williams \cite{williams2009finding}.
 
-Optimizing network scan statistics leads to challenging optimization problems.
+Optimizing network scan statistics leads to challenging optimization problems as well.
 Color coding has also been used to develop the first method with rigorous approximation
 guarantees \cite{cadena:sdm17}; however, this has not been parallelized because of
 its high memory overhead. In \cite{cadena:bigdata17}, we have developed a
-parallel adaptation of the multilinear detection technique using Giraph. However,
-this does not scale beyond networks with 40 million edges.
+parallel adaptation of the multilinear detection technique using both GraphX and Giraph. However,
+none of these scaled beyond networks with 40 million edges.
 
 In this paper, we develop a distributed algorithm for multilinear detection,
 which immediately leads to highly scalable algorithms for both paths and trees,
@@ -50,19 +49,20 @@ Our contributions are:
 \noindent
 \textbf{1. \ouralgo{}: Distributed algorithm for multilinear detection
 and applications to subgraph analysis.}
-We develop \ouralgo{}, a distributed MPI based algorithm for finding
+We develop \ouralgo{}, a randomized distributed MPI based algorithm for finding
 paths and trees through detection of
 multilinear terms with $k$ variables of the form $x_{i_1}x_{i_2}\ldots x_{i_k}$ (i.e., a term in
 which all variables have exponent 1) in a multivariate polynomial
-$P(x_1,\ldots,x_n)$ (which is referred to as the $k$-Multilinear Detection (\textsc{$k$-MLD}) problem
-\cite{koutis:icalp08, williams2009finding}). The sequential algorithm uses a matrix representation
-of a group algebra (as will be described later), and its structure lends itself to a natural
+$P(x_1,\ldots,x_n)$. The sequential algorithm uses a matrix representation
+of a group algebra \cite{koutis:icalp08, williams2009finding}, and its structure lends itself to a natural
 parallelization.  We give rigorous bounds on the performance in terms of the time and
 space complexity, which scale as
 $O(2^k)$ and $O(k)$, respectively, compared with $O(2^ke^k)$ and $O(2^k)$ for
 color coding, respectively \cite{zhao2012sahad, slota:icpp13, slota:ipdps14}.
-For random graphs, we show a rigorous scaling with $N$, the number of processors for $N\leq 2^k$. 
+For random graphs, we show a rigorous scaling with $N$, the number of processors for $N\leq 2^k$.
 
+\noindent
+\textbf{2. Cache optimization and weak scalability}. %%Parallelization of the \textsc{$k$-MLD} problem {\color{red} TODO}
 Our algorithm partitions the graph $G$ into $N_1$ parts. The computation involves $2^k$
 iterations, and $N_1$ processors together perform one iteration---this allows us to schedule
 $N/N_1$ such computations to occur in parallel. The total compute time exhibits good weak scaling.
@@ -73,20 +73,16 @@ with $N_1$, leading to an optimal value of $N_1$ for the best performance.
 
 
 \noindent
-\textbf{2. Experimental results}. We evaluate our results on a number of real and synthetic networks 
-with up to 250 million edges and subgraph sizes up to $k=18$. The reduced memory footprint
-allows us to scale to paths of size 18, which has not been done before.  Our algorithms for
+\textbf{3. Experimental results}. We evaluate our results on a number of real and synthetic networks with up to 250 million edges. The reduced memory footprint allows us to scale to finding subgraphs of size 18, which has not been done before.  Our algorithms for
 both problems show reasonable scaling up to 512 processors, supporting our theoretical analysis. 
 The running time grows linearly with the network size and as $2^k$ for the subgraph size $k$.
 
 \noindent
-\textbf{3. Comparison with prior methods.}
-Our algorithm for finding paths gives over two orders of magnitude improvement in time
-compared to FASCIA, the state of the art method based on color coding \cite{slota:icpp13, slota:ipdps14}.
-Our algorithm for scan statistics improves on the Giraph based implementation
-\cite{cadena:bigdata17} by over an order of magnitude, and scales to significantly larger networks.
+\textbf{4. Comparison with prior methods.}
+Our algorithm for finding paths is two orders of magnitude faster than FASCIA, the state of the art method based on color coding \cite{slota:icpp13, slota:ipdps14}.
+Our algorithm for scan statistics improves on a Giraph-based implementation \cite{cadena:bigdata17} by over one order of magnitude, and it scales to significantly larger networks.
 
-
+One additional advantage is that our parallel algorithm based on multilinear detection is conceptually much simpler than color coding based algorithms. It also requires far less bookkeeping than color coding. As we discuss in Section \ref{sec:proposed}, the obvious ways to try to parallelize multilinear detection do not scale well; instead, we find that a careful interplay between the degree of partitioning as well as batching a set of iterations yields better results.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

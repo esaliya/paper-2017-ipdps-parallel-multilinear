@@ -92,8 +92,8 @@
 
 % *** CITATION PACKAGES ***
 %
-%\usepackage{cite}
-% cite.sty was written by Donald Arseneau
+\usepackage{cite}
+%cite.sty was written by Donald Arseneau
 % V1.6 and later of IEEEtran pre-defines the format of the cite.sty package
 % \cite{} output to follow that of the IEEE. Loading the cite package will
 % result in citation numbers being automatically sorted and properly
@@ -355,8 +355,10 @@
 \newcommand{\algcircuit}{\textsc{EvaluatePolynomial}}
 \newcommand{\parcircuit}{\textsc{ParEvaluatePolynomial}}
 \newcommand{\parcircuitpath}{\textsc{ParEvaluatePolynomialPath}}
+\newcommand{\parcircuittree}{\textsc{ParEvaluatePolynomialTree}}
+\newcommand{\parcircuitscan}{\textsc{ParEvaluatePolynomialScanStat}}
 \newcommand{\algpregel}{\textsc{EvaluateNode}}
-\newcommand{\ouralgo}{\textsc{ParMuD}}
+\newcommand{\ouralgo}{\textsc{MIDAS}}
 \newcommand{\pred}{\textsc{pred}}
 \renewcommand{\succ}{\textsc{succ}}
 \newcommand{\val}{\textsc{val}}
@@ -377,24 +379,53 @@
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
 %\title{Parallel Multilinear Detection and Applications}
-\title{Finding Trees and Anomalous Subgraphs in Parallel}
-
+\title{\ouralgo: Multilinear Detection at Scale}
 % author names and affiliations
 % use a multiple column layout for up to three different
 % affiliations
-\author{\IEEEauthorblockN{Saliya Ekanayake}
-\IEEEauthorblockA{Biocomplexity Institute\\
-Virginia Tech}
-\and
-\IEEEauthorblockN{Jose Cadena}
-\IEEEauthorblockA{Department of Computer Science and\\Biocomplexity Institute\\
-Virginia Tech}
-\and
-\IEEEauthorblockN{Anil Kumar Vullikanti}
-\IEEEauthorblockA{Department of Computer Science and\\Biocomplexity Institute\\
-Virginia Tech}
+% \author{\IEEEauthorblockN{Saliya Ekanayake}
+% \IEEEauthorblockA{Network Dynamics and \\
+% Simulation Science Laboratory (NDSSL) \\
+% Virginia Tech\\
+% Email: esaliya@vt.edu}
+% \and
+% \IEEEauthorblockN{Jose Cadena}
+% \IEEEauthorblockA{Department of Computer Science and\\Biocomplexity Institute\\
+% Virginia Tech\\
+% Email: jcadena@bi.vt.edu}
+% \and
+% \IEEEauthorblockN{Udayanga Wickramasinghe}
+% \IEEEauthorblockA{Department of Computer Science\\
+% Indiana University, Bloomington\\
+% Email: uswickra@indiana.edu}
+% \and
+% \IEEEauthorblockN{Anil Kumar Vullikanti}
+% \IEEEauthorblockA{Department of Computer Science and\\Biocomplexity Institute\\
+% Virginia Tech\\
+% Email: vsakumar@vt.edu}
+% }
+% \author{\IEEEauthorblockN{Saliya Ekanayake\IEEEauthorrefmark{1},
+% Jose Cadena\IEEEauthorrefmark{2}, 
+% Udayanga Wickramasinghe\IEEEauthorrefmark{3} and
+% Anil Kumar Vullikanti\IEEEauthorrefmark{2}}
+% \IEEEauthorblockA{\IEEEauthorrefmark{1}Network Dynamics and
+% Simulation Science Laboratory (NDSSL), Virginia Tech\\
+% Email: esaliya@vt.edu}
+% \IEEEauthorblockA{\IEEEauthorrefmark{2}Department of Computer Science and Biocomplexity Institute, Virginia Tech\\
+% Email: \{jcadena,vsakumar\}@bi.vt.edu}
+% \IEEEauthorblockA{\IEEEauthorrefmark{3}Department of Computer Science, Indiana University, Bloomington\\
+% Email: uswickra@indiana.edu}
+% }
+\author{\IEEEauthorblockN{Saliya Ekanayake\IEEEauthorrefmark{1},
+Jose Cadena\IEEEauthorrefmark{1}, 
+Udayanga Wickramasinghe\IEEEauthorrefmark{2} and
+Anil Kumar Vullikanti\IEEEauthorrefmark{1}}
+\IEEEauthorblockA{\IEEEauthorrefmark{1}Network Dynamics and
+Simulation Science Laboratory, Virginia Tech, Blacksburg, VA\\
+Email: \{esaliya,jcadena,vsakumar\}@vt.edu}
+\IEEEauthorblockA{\IEEEauthorrefmark{2}Department of Computer Science, Indiana University, Bloomington, IN\\
+Email: uswickra@indiana.edu}
 }
-
 % conference papers do not typically use \thanks and this command
 % is locked out in conference mode. If really needed, such as for
 % the acknowledgment of grants, issue a \IEEEoverridecommandlockouts
@@ -404,33 +435,25 @@ Virginia Tech}
 % of the page, use this alternative format:
 % 
 %\IEEEspecialpapernotice{(Blind for Review)}
-
-
 % make the title area
 \maketitle
-
 % As a general rule, do not put math, special symbols or citations
 % in the abstract
 \begin{abstract}
-We focus on two classes of problems in graph mining here: (1) finding trees and 
-(2) anomaly detection using network scan statistics in complex networks, which
-involves finding connected subgraphs that maximize a suitable anomaly score depending on the underlying application.
-These are fundamental problems in a broad class of applications.
+We focus on two classes of problems in graph mining: (1) finding trees and 
+(2) anomaly detection in complex networks using scan statistics. These are fundamental problems in a broad class of applications.
 Most of the parallel algorithms for such problems are either based on heuristics,
 which do not scale very well, or use techniques like color coding, which have a high memory overhead.
 In this paper, we develop a novel approach for parallelizing both these classes of problems,
-using algebraic representations for
-such problems---this involves detecting multilinear terms in multivariate polynomials.
-Our algorithms show good scaling over a large regime, and run on networks with close
-to half a billion edges. 
+using an algebraic representation of subgraphs as monomials---this methodology involves detecting multilinear terms in multivariate polynomials.
+Our algorithms show good scaling over a large regime, and they run on networks with close
+to half one billion edges. 
 The resulting parallel algorithm for trees is able to scale to subgraphs of size $18$,
-which has not been shown before, and significantly outperforms the best prior
+which has not been done before, and it significantly outperforms the best prior
 color coding based method (FASCIA) by more than two orders of magnitude.
 Our algorithm for network scan statistics is the first such parallelization,
-and is able to handle a broad class of scan statistics (both parametric and non-parametric),
-with the same approach.
+and it is able to handle a broad class of scan statistics functions with the same approach.
 \end{abstract}
-
 % no keywords
 
 % For peer review papers, you can put extra information on the cover
@@ -443,14 +466,14 @@ with the same approach.
 % creates the second title. It will be ignored for other modes.
 \IEEEpeerreviewmaketitle
 
-{
-\color{red}
-\textbf{TODO:}
-\begin{itemize}
-\item Be upfront about the challenges of parallelizing the algorithm and that the serial implementation is amenable to parallelization.
-\item Experimental results for k-tree and the PULP partitioner.
-\end{itemize}
-}
+%{
+%\color{red}
+%\textbf{TODO:}
+%\begin{itemize}
+%\item Be upfront about the challenges of parallelizing the algorithm and that the serial implementation is amenable to parallelization.
+%\item Experimental results for k-tree and the PULP partitioner.
+%\end{itemize}
+%}
 
 \input{introduction.tex}
 \input{preliminaries_v5.tex}
